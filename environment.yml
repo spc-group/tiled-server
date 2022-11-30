@@ -1,0 +1,40 @@
+name: tiled
+
+# micromamba create -n tiled -f environment.yml -y
+# micromamba activate tiled
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python >=3.8
+  - alembic
+  - appdirs
+  - cachey
+  - databroker
+  - h5py
+  - hdf5plugin
+  - httpx
+  - ipython
+  - ldap3
+  - jmespath
+  - matplotlib
+  - orjson
+  - pandas
+  - pip
+  - punx
+  - pyarrow
+  - pycrypto
+  - python-jose
+  - setuptools-scm
+  - spec2nexus
+  - sqlalchemy
+  - tiled
+  - typer
+  - uvicorn
+  - watchgod
+
+  - pip:
+    # new version: 2.1.1
+    - https://raw.githubusercontent.com/EPICS-synApps/support/master/utils/mdaPythonUtils/mdalib-2022.post9-py2.py3-none-any.whl
