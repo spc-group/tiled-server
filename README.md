@@ -6,7 +6,7 @@ APS local tiled data server template: databroker catalog
   - [Overview](#overview)
   - [Startup](#startup)
     - [Features](#features)
-  - [Additional content served](#additional-content-served)
+      - [Additional file content served](#additional-file-content-served)
   - [Links](#links)
   - [Install](#install)
   - [Files](#files)
@@ -14,9 +14,8 @@ APS local tiled data server template: databroker catalog
 
 ## Overview
 
-Run the *tiled* data server for the local beam line on workstation
-`SERVER`.  Since this server provides open access, it is only
-accessible within the APS subnet.
+Run the *tiled* data server locally on workstation `SERVER`.  Since this server
+provides open access, it is only accessible within the APS firewall.
 
 ## Startup
 
@@ -27,20 +26,19 @@ To start this tiled server (after configuring as described in the
 in-screen.sh
 ```
 
-Then, use any web browser (within the APS firewall) to visit
-URL: `http://SERVER:8000`.
+Then, use any web browser (within the APS firewall) to visit URL:
+`http://SERVER:8000`.
 
-The web interface is a simple UI demonstrating many features of
-the tiled server and also providing access to online documentation.
-Visit the documentation to learn how to build your own interface
-to tiled.
+The web interface is a simple UI demonstrating many features of the tiled server
+and also providing access to online documentation. Visit the documentation to
+learn how to build your own interface to tiled.
 
 ### Features
 
 - serve data from Bluesky databroker catalogs
 - (optional) serve data from user experiment file directory
 
-## Additional content served
+#### Additional file content served
 
 - [x] Identify NeXus/HDF5 files with arbitrary names.
 - [x] Identify SPEC data files with arbitrary names and read them.
@@ -58,29 +56,35 @@ to tiled.
 
 ## Install
 
-1. Setup and activate a custom micromamba (conda)
-   environment as directed
-   in [`environment.yml`](./environment.yml). (Do not expect that file needs editing as of 2022-11-23.)
+1. Setup and activate a custom micromamba (conda) environment as directed
+   in [`environment.yml`](./environment.yml).
 
    Note: This step defines a `CONDA_PREFIX` environment variable in the bash shell.  Used below.
-2. Copy the template file `config.yml.template` to `config.yml`.
-3. Edit tiled's configuration file: [`config.yml`](./config.yml)
-   1. `path` is the name seen by the tiled clients.
-   2. `tree` should not be changed
-   3. for databroker catalogs, `uri` is the address
+2. tiled's configuration file: `config.yml`:
+   1. Copy the template file `config.yml.template` to `config.yml`
+   2. `path` is the name that will be seen by the tiled clients.
+   3. `tree` should not be changed
+   4. for databroker catalogs, `uri` is the address
       of the mongodb catalog for this `path`
-   4. for file directories, `directory` is the path to
+   5. for file directories, `directory` is the path to
       the directory.  Either absolute or relative to the
       directory of this README.md file.
+   6. Uncomment and edit the second catalog (`tree: databroker `...),
+      copy and edit if more catalogs are to be served.
+   7. Uncomment and edit the file directory (`tree: files`)
+      if you wish tomake a file directory available.
 3. Edit bash starter shell script file [`start-tiled.sh`](./start-tiled.sh)
    1. Override definition of `MY_DIR` at your choice.
-   2. Choose one definition of `CONDA_ENV`.
+   2. (optional) Override definition of `CONDA_ENV` which is the name of the conda environment created above.
 4. Edit web interface to display additional columns:
    1. In the `$CONDA_PREFIX` directory, edit file
       `share/tiled/ui/config/bluesky.yml` so it has the
       content indicated by the [`bluesky.yml`](#blueskyyml)
       below.
-   2. Edit file `share/tiled/ui/configuration_manifest.yml`
+   2. Edit `CONDA_BASE` and the `source` line that follows to activate
+      your conda base environment.
+   3. Edit the command-line options for `tiled`.
+   4. Edit file `share/tiled/ui/configuration_manifest.yml`
       and add a line at the bottom to include the
       `bluesky.yml` file:
 
