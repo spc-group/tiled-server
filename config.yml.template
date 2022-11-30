@@ -17,7 +17,7 @@ trees:
   #     # for unsecured access
   #     uri: mongodb://DB_SERVER.xray.aps.anl.gov:27017/older_45id_instrument-bluesky
 
-  # - path: file_data
+  # - path: files
   #   tree: files
   #   args:
   #     directory: /data/directory/path
