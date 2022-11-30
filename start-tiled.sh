@@ -2,14 +2,21 @@
 
 # run the tiled server
 
-MY_DIR=$(realpath $(dirname $0))
 CONDA_ENV=tiled
+MY_DIR=$(realpath $(dirname $0))
 LOG_FILE="${MY_DIR}/logfile.txt"
+HOST=0.0.0.0
+PORT=8000
 
-export CONDA_BASE=/APSshare/miniconda/x86_64
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
+# export CONDA_BASE=/APSshare/miniconda/x86_64
+# source "${CONDA_BASE}/etc/profile.d/conda.sh"
 
 # eval "$(micromamba shell hook --shell=)"
-conda activate "${CONDA_ENV}"
+# micromamba activate "${CONDA_ENV}"
 
-tiled serve config --public --host 0.0.0.0 "${MY_DIR}/config.yml" 2>&1 | tee "${LOG_FILE}"
+tiled serve config \
+    --port ${PORT} \
+    --host ${HOST} \
+    --public \
+    "${MY_DIR}/config.yml" \
+    2>&1 | tee "${LOG_FILE}"
