@@ -97,12 +97,8 @@ interface to tiled.
       `share/tiled/ui/config/bluesky.yml` so it has the
       content indicated by the [`bluesky.yml`](#blueskyyml)
       below.
-   2. Edit `CONDA_BASE` and the `source` line that follows to activate
-      your conda base environment.
-   3. Edit the command-line options for `tiled`.
-   4. Edit file `share/tiled/ui/configuration_manifest.yml`
-      and add a line at the bottom to include the
-      `bluesky.yml` file:
+   2. Edit file `share/tiled/ui/configuration_manifest.yml` and
+      add a line at the bottom to include the `bluesky.yml` file:
 
       ```yml
         - config/bluesky.yml
