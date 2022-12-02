@@ -20,18 +20,28 @@ provides open access, it is only accessible within the APS firewall.
 ## Startup
 
 To start this tiled server (after configuring as described in the
-[Install](#install} section), navigate to this directory and run:
+[Install](#install} section), navigate to this directory and run the server
+within a [screen](https://www.man7.org/linux/man-pages/man1/screen.1.html)
+session:
 
 ```bash
 in-screen.sh
 ```
 
+<details>
+<summary>Tutorial: screen</summary>
+
+See also: https://www.hostinger.com/tutorials/how-to-install-and-use-linux-screen/
+
+</details>
+
 Then, use any web browser (within the APS firewall) to visit URL:
 `http://SERVER:8000`.
 
-The web interface is a simple UI demonstrating many features of the tiled server
-and also providing access to online documentation. Visit the documentation to
-learn how to build your own interface to tiled.
+The web interface is a simple (simplistic yet informative) User Interface
+demonstrating many features of the tiled server and also providing access to
+online documentation. Visit the documentation to learn how to build your own
+interface to tiled.
 
 ### Features
 
@@ -53,6 +63,7 @@ learn how to build your own interface to tiled.
 
 - <https://github.com/bluesky/tiled/issues/175>
 - <https://blueskyproject.io/tiled/how-to/read-custom-formats.html#case-2-no-file-extension>
+- `screen` tutorial: See also: https://www.hostinger.com/tutorials/how-to-install-and-use-linux-screen/
 
 ## Install
 
@@ -75,7 +86,12 @@ learn how to build your own interface to tiled.
       if you wish tomake a file directory available.
 3. Edit bash starter shell script file [`start-tiled.sh`](./start-tiled.sh)
    1. Override definition of `MY_DIR` at your choice.
-   2. (optional) Override definition of `CONDA_ENV` which is the name of the conda environment created above.
+   2. (optional) Activate the micromamba/conda environment (if not done
+      in step 1 above).  You may need to change the definition of
+      `CONDA_ENV` which is the name of the conda environment to use.
+   3. (optional) Change the `HOST` and `PORT` if needed.
+   4. (optional) Remove the `--public` option if you want to require an
+      authentication token (shown on the console at startup of tiled).
 4. Edit web interface to display additional columns:
    1. In the `$CONDA_PREFIX` directory, edit file
       `share/tiled/ui/config/bluesky.yml` so it has the
