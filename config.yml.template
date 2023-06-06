@@ -30,12 +30,14 @@ trees:
   #       .DS_Store: text/plain
   #       .h5: application/x-hdf5
   #       .hdf: application/x-hdf5
+  #       .mda: application/x-mda
   #       .pptx: application/octet-stream
   #       .pyc: application/octet-stream
   #       .webp: image/webp
   #     readers_by_mimetype:
   #       application/json: ignore_data:read_ignore
   #       application/octet-stream: ignore_data:read_ignore
+  #       application/x-mda: synApps_mda:read_mda
   #       application/xop+xml: ignore_data:read_ignore
   #       application/zip: ignore_data:read_ignore
   #       image/avif: ignore_data:read_ignore
