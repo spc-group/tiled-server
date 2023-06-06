@@ -15,6 +15,7 @@ dependencies:
   - h5py
   - hdf5plugin
   - punx
+  - pip
   - spec2nexus
 
   - pip:
