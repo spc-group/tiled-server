@@ -5,7 +5,8 @@
 CONDA_ENV=tiled
 MY_DIR=$(realpath $(dirname $0))
 LOG_FILE="${MY_DIR}/logfile.txt"
-HOST=0.0.0.0
+# HOST=0.0.0.0
+HOST="${HOSTNAME}"
 PORT=8000
 
 # export CONDA_BASE=/APSshare/miniconda/x86_64
