@@ -130,6 +130,7 @@ dmypy.json
 
 # local developer code
 dev_*.py
+dev_*/
 
 # Microsoft VisualStudio Code Editor
 .vscode/
