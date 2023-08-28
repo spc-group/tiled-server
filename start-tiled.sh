@@ -2,18 +2,14 @@
 
 # run the tiled server
 
-CONDA_ENV=tiled
-MY_DIR=$(realpath $(dirname $0))
+MY_DIR=$(realpath "$(dirname $0)")
 LOG_FILE="${MY_DIR}/logfile.txt"
-# HOST=0.0.0.0
-HOST="${HOSTNAME}"
-PORT=8000
+HOST=0.0.0.0  # access server by "localhost", hostname, or IP number
+# HOST="${HOSTNAME}"  # only access server by this exact name
+PORT=8020
 
-# export CONDA_BASE=/APSshare/miniconda/x86_64
-# source "${CONDA_BASE}/etc/profile.d/conda.sh"
-
-# eval "$(micromamba shell hook --shell=)"
-# micromamba activate "${CONDA_ENV}"
+# CONDA_ENV=tiled-test
+# conda activate "${CONDA_ENV}"
 
 tiled serve config \
     --port ${PORT} \
