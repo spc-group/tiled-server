@@ -9,7 +9,7 @@ APS local tiled data server template: databroker catalog
       - [Additional file content served](#additional-file-content-served)
   - [File Directories](#file-directories)
     - [Indexing](#indexing)
-    - [Create the catalog file](#create-the-catalog-file)
+    - [Serve the catalog file](#serve-the-catalog-file)
     - [Index the directory into the catalog file](#index-the-directory-into-the-catalog-file)
       - [Custom file types](#custom-file-types)
     - [Start tiled server with directory HDF5 files](#start-tiled-server-with-directory-hdf5-files)
@@ -82,9 +82,9 @@ Each tiled *tree* of a file directory, needs its own index.  The index is a
 local SQLite database file, (a.k.a., a *catalog*) that contains metadata
 collected from each of the files and subdirectories for this tree.
 
-### Create the catalog file
+### Serve the catalog file
 
-Create the catalog file.  The name of this file can be anything (permissable by
+Serve the catalog file.  The name of this file can be anything (permissable by
 the OS).  To be consistent with the *tiled* documentation, we'll use
 `catalog.db` for these examples.  This is a one-time command, unless you wish to
 remove any existing content from this SQL database.
@@ -124,7 +124,7 @@ custom code associated with each additional mimetype.
 
 Here's an example for the custom handlers in this repository.  Note this example
 uses the `./dev_data/` directory, so the `catalog.db` must first be
-[recreated](#create-the-catalog-file).
+[recreated](#serve-the-catalog-file).
 
 ```bash
 PYTHONPATH=. \
