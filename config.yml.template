@@ -17,24 +17,13 @@ trees:
   #     # for unsecured access
   #     uri: mongodb://DB_SERVER.xray.aps.anl.gov:27017/older_45id_instrument-bluesky
 
-  # - path: files
-  #   tree: files
+  # - path: dev_data
+  #   tree: tiled.catalog:from_uri
   #   args:
-  #     directory: /data/directory/path
-  #     key_from_filename: tiled.adapters.files:identity
-  #     mimetype_detection_hook: custom:detect_mimetype
-  #     mimetypes_by_file_ext:
-  #       .avif: image/avif
-  #       .dat: text/spec_data
-  #       .docx: application/octet-stream
-  #       .DS_Store: text/plain
-  #       .h5: application/x-hdf5
-  #       .hdf: application/x-hdf5
-  #       .mda: application/x-mda
-  #       .pptx: application/octet-stream
-  #       .pyc: application/octet-stream
-  #       .webp: image/webp
-  #     readers_by_mimetype:
+  #     uri: ./catalog.db
+  #     readable_storage:
+  #       - ./dev_data
+  #     adapters_by_mimetype:
   #       application/json: ignore_data:read_ignore
   #       application/octet-stream: ignore_data:read_ignore
   #       application/x-mda: synApps_mda:read_mda
@@ -52,6 +41,6 @@ trees:
   #       image/x-ms-bmp: image_data:read_image
   #       text/markdown: ignore_data:read_ignore
   #       text/plain: ignore_data:read_ignore
-  #       text/spec_data: spec_data:read_spec_data
   #       text/x-python: ignore_data:read_ignore
+  #       text/x-spec_data: spec_data:read_spec_data
   #       text/xml: ignore_data:read_ignore

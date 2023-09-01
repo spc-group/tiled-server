@@ -1,11 +1,17 @@
 """Read the synApps MDA file format."""
 
+# FIXME: TypeError: read_mda() got an unexpected keyword argument 'specs'
+# when browsing a MDA file
+
+import mda
 from tiled.adapters.array import ArrayAdapter
 from tiled.adapters.mapping import MapAdapter
-import mda
+from tiled.structures.core import Spec as TiledSpec
 
 EXTENSIONS = [".mda"]
 MIMETYPE = "application/x-mda"
+MDA_FILE_SPECIFICATION = TiledSpec("MDA_file", version="1.0")
+MDA_SCAN_SPECIFICATION = TiledSpec("MDA_scan", version="1.0")
 
 
 def as_str(v):
@@ -87,22 +93,24 @@ def read_mda_scan(scan):
         v["EPICS_PV"] = as_str(trigger.name)
         scan_md[f"T{i}"] = v
 
-    return MapAdapter(arrays, metadata=scan_md)
+    return MapAdapter(arrays, metadata=scan_md, specs=[MDA_SCAN_SPECIFICATION])
 
 
-def read_mda(filename):
+def read_mda(filename, **kwargs):
     mda_obj = mda.readMDA(
         str(filename),
         useNumpy=True,
         verbose=False,
         showHelp=False,
     )
-    file_md = read_mda_header(mda_obj)
-    scans = {f"S{scan.rank}": read_mda_scan(scan) for scan in mda_obj[1:]}
-    return MapAdapter(scans, metadata=file_md)
+    return MapAdapter(
+        {f"S{scan.rank}": read_mda_scan(scan) for scan in mda_obj[1:]},
+        metadata=read_mda_header(mda_obj),
+        specs=[MDA_FILE_SPECIFICATION],
+    )
 
 
-def main():
+def developer():
     import pathlib
 
     path = (
@@ -122,4 +130,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    developer()
