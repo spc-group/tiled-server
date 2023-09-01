@@ -149,3 +149,4 @@ logfile.txt
 # ignore actual config files (in the template repo)
 config.yml
 *.db
+*.sql
