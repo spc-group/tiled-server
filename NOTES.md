@@ -1,5 +1,7 @@
 # NOTES with new tiled a105
 
+terse notes collected from conversation 2023-08-31
+
 ```bash
     tiled catalog init catalog.db
     tiled catalog register catalog.db \
