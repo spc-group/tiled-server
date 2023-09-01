@@ -1,7 +1,7 @@
-name: tiled-test
+name: tiled
 
-# conda env create --force -n tiled-test -f environment.yml --solver=libmamba
-# conda activate tiled-test
+# conda env create --force -n tiled -f environment.yml --solver=libmamba
+# conda activate tiled
 
 channels:
   - conda-forge
