@@ -6,7 +6,7 @@ from tiled.structures.core import Spec as TiledSpec
 IGNORE_SPECIFICATION = TiledSpec("ignore", version="1.0")
 
 
-def read_ignore(filename):
+def read_ignore(filename, **kwargs):
     arrays = dict(
         ignore=ArrayAdapter.from_array(
             numpy.array([0, 0]),

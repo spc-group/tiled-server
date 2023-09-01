@@ -114,7 +114,7 @@ def image_metadata(image):
     return md
 
 
-def read_image(filename):
+def read_image(filename, **kwargs):
     fn = pathlib.Path(filename).name
     try:
         image = Image.open(filename)
