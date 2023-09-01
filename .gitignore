@@ -130,6 +130,7 @@ dmypy.json
 
 # local developer code
 dev_*.py
+dev_*/
 
 # Microsoft VisualStudio Code Editor
 .vscode/
@@ -147,3 +148,4 @@ logfile.txt
 
 # ignore actual config files (in the template repo)
 config.yml
+*.db

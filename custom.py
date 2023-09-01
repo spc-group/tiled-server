@@ -4,14 +4,15 @@ Custom handling for data file types not recognized by tiled.
 https://blueskyproject.io/tiled/how-to/read-custom-formats.html
 """
 
-from punx.utils import isHdf5FileObject
-from punx.utils import isNeXusFile
-from spec2nexus.spec import is_spec_file_with_header
-import h5py
 import pathlib
 
+import h5py
+from punx.utils import isHdf5FileObject, isNeXusFile
+from spec2nexus.spec import is_spec_file_with_header
+from spec_data import MIMETYPE as SPEC_MIMETYPE
 
 FILE_OF_UNRECOGNIZED_FILE_TYPES = "/tmp/unrecognized_files.txt"
+HDF5_MIMETYPE = "application/x-hdf5"
 
 
 def isHdf5(filename):
@@ -32,9 +33,9 @@ def isNeXus(filename):
 
 
 mimetype_table = {
-    is_spec_file_with_header: "text/spec_data",  # spec2nexus.spec.is_spec_file_with_header
-    isNeXus: "application/x-hdf5",  # punx.utils.isNeXusFile
-    isHdf5: "application/x-hdf5",  # punx.utils.isHdf5FileObject
+    is_spec_file_with_header: SPEC_MIMETYPE,  # spec2nexus.spec.is_spec_file_with_header
+    isNeXus: HDF5_MIMETYPE,  # punx.utils.isNeXusFile
+    isHdf5: HDF5_MIMETYPE,  # punx.utils.isHdf5FileObject
 }
 
 

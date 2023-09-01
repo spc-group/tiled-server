@@ -7,6 +7,12 @@ APS local tiled data server template: databroker catalog
   - [Startup](#startup)
     - [Features](#features)
       - [Additional file content served](#additional-file-content-served)
+  - [File Directories](#file-directories)
+    - [Indexing](#indexing)
+    - [Create the catalog file](#create-the-catalog-file)
+    - [Index the directory into the catalog file](#index-the-directory-into-the-catalog-file)
+      - [Custom file types](#custom-file-types)
+    - [Start tiled server with directory HDF5 files](#start-tiled-server-with-directory-hdf5-files)
   - [Links](#links)
   - [Install](#install)
   - [Files](#files)
@@ -16,6 +22,10 @@ APS local tiled data server template: databroker catalog
 
 Run the *tiled* data server locally on workstation `SERVER`.  Since this server
 provides open access, it is only accessible within the APS firewall.
+
+- [x] databroker/MongoDB catalogs
+- [x] file directories
+- [ ] Authentication
 
 ## Startup
 
@@ -56,8 +66,131 @@ interface to tiled.
 - [x] Read the [synApps MDA format](https://github.com/epics-modules/sscan/blob/master/documentation/saveData_fileFormat.txt) ([Python support](https://github.com/EPICS-synApps/utils/blob/master/mdaPythonUtils/INSTALL.md))
 - [x] Write a custom data file identifier.
 - [x] Write a custom data file loader.
-- [ ] Authentication
 - [x] Learn how to ignore files such as `.xml` (without startup comments).
+
+## File Directories
+
+Since tiled tag 0.1.0a104, serving a directory of files from tiled has become a
+two-step process:
+
+1. Index the directory of files (into a SQLite file).
+2. Serve the directory based on the index file.
+
+### Indexing
+
+Each tiled *tree* of a file directory, needs its own index.  The index is a
+local SQLite database file, (a.k.a., a *catalog*) that contains metadata
+collected from each of the files and subdirectories for this tree.
+
+### Create the catalog file
+
+Create the catalog file.  The name of this file can be anything (permissable by
+the OS).  To be consistent with the *tiled* documentation, we'll use
+`catalog.db` for these examples.  This is a one-time command, unless you wish to
+remove any existing content from this SQL database.
+
+```bash
+tiled catalog init catalog.db
+```
+
+### Index the directory into the catalog file
+
+Index the entire directory (and any subdirectories).  This example walks through
+the (local) `.dev_data/hdf` directory and indexes any files already recognized
+by tiled.  Also, it recognizes any files with suffixes `.nx5` and `.nexus.hdf5`
+as HDF5.  *tiled* already handles HDF5 as a file type, so no additional code is
+required to parse and provide that content.
+
+```bash
+tiled catalog register catalog.db \
+   --verbose \
+   --ext '.nx5=application/x-hdf5' \
+   --ext '.nexus.hdf5=application/x-hdf5' \
+   ./dev_data/hdf5
+```
+
+#### Custom file types
+
+The `config.yml.template` has examples for custom file types.  The command to
+index changes.  First, it is necessary to add the `*.py` files in this
+directory, by prefixing the command with an environment definition for just this
+command: `PYTHONPATH=. tiled catalog register ...`
+
+Next, add `--ext` options for each file suffix to be recognized.  The
+`--mimetype-hook` option identifies the local code to associate mimetypes with
+any other unrecognized files.  (For example, SPEC data files are text and may
+not even have a common file suffix.)  The `--adapter` lines define the local
+custom code associated with each additional mimetype.
+
+Here's an example for the custom handlers in this repository.  Note this example
+uses the `./dev_data/` directory, so the `catalog.db` must first be
+[recreated](#create-the-catalog-file).
+
+```bash
+PYTHONPATH=. \
+   tiled catalog register \
+   catalog.db \
+   --verbose \
+   --ext '.avif=image/avif' \
+   --ext '.dat=text/x-spec_data' \
+   --ext '.docx=application/octet-stream' \
+   --ext '.DS_Store=text/plain' \
+   --ext '.h5=application/x-hdf5' \
+   --ext '.hdf=application/x-hdf5' \
+   --ext '.mda=application/x-mda' \
+   --ext '.nexus.hdf5=application/x-hdf5' \
+   --ext '.nx5=application/x-hdf5' \
+   --ext '.pptx=application/octet-stream' \
+   --ext '.pyc=application/octet-stream' \
+   --ext '.webp=image/webp' \
+   --mimetype-hook 'custom:detect_mimetype' \
+   --adapter 'application/json=ignore_data:read_ignore' \
+   --adapter 'application/octet-stream=ignore_data:read_ignore' \
+   --adapter 'application/x-mda=synApps_mda:read_mda' \
+   --adapter 'application/xop+xml=ignore_data:read_ignore' \
+   --adapter 'application/zip=ignore_data:read_ignore' \
+   --adapter 'image/avif=ignore_data:read_ignore' \
+   --adapter 'image/bmp=image_data:read_image' \
+   --adapter 'image/gif=image_data:read_image' \
+   --adapter 'image/jpeg=image_data:read_image' \
+   --adapter 'image/png=image_data:read_image' \
+   --adapter 'image/svg+xml=ignore_data:read_ignore' \
+   --adapter 'image/tiff=image_data:read_image' \
+   --adapter 'image/vnd.microsoft.icon=image_data:read_image' \
+   --adapter 'image/webp=image_data:read_image' \
+   --adapter 'image/x-ms-bmp=image_data:read_image' \
+   --adapter 'text/markdown=ignore_data:read_ignore' \
+   --adapter 'text/plain=ignore_data:read_ignore' \
+   --adapter 'text/x-python=ignore_data:read_ignore' \
+   --adapter 'text/x-spec_data=spec_data:read_spec_data' \
+   --adapter 'text/xml=ignore_data:read_ignore' \
+   ./dev_data
+```
+
+### Start tiled server with directory HDF5 files
+
+If there is only one catalog (this catalog of directories) to be served by
+tiled, then start the server (with this `command.db` file and `./dev_data/hdf5/`
+directory) from the command line, such as:
+
+```bash
+   tiled serve catalog catalog.db -r ./dev_data/hdf5/ --host 0.0.0.0  --public
+```
+
+To run a tiled server for multiple catalogs, use a `config.yml` file.  To
+configure tiled for this example directory of HDF5 files, add this to the
+`config.yml` file:
+
+```yaml
+   - path: HDF5-files
+      tree: tiled.catalog:from_uri
+      args:
+      uri: ./catalog.db
+      readable_storage:
+         - ./dev_data/hdf5
+```
+
+then start the *tiled* server with `./start-tiled.sh` or similar.
 
 ## Links
 
