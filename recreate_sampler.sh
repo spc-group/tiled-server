@@ -29,6 +29,9 @@ PYTHONPATH=. \
     --ext '.nx5=application/x-hdf5' \
     --ext '.pptx=application/octet-stream' \
     --ext '.pyc=application/octet-stream' \
+    --ext '.spc=text/x-spec_data' \
+    --ext '.spe=text/x-spec_data' \
+    --ext '.spec=text/x-spec_data' \
     --ext '.webp=image/webp' \
     --mimetype-hook 'custom:detect_mimetype' \
     --adapter 'application/json=ignore_data:read_ignore' \
