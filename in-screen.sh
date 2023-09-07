@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # run the tiled server in a screen session
-# SESSION_NAME=tiled_server
-SESSION_NAME=tiled_server_issue2
+SESSION_NAME=tiled_server
 N_LINES=5000
 
 screen \
