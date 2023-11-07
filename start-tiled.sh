@@ -8,7 +8,9 @@ HOST=0.0.0.0  # access server by "localhost", hostname, or IP number
 # HOST="${HOSTNAME}"  # only access server by this exact name
 PORT=8020
 
-# CONDA_ENV=tiled-test
+# TODO: Test this.
+# source /APSshare/miniconda/x86_64/etc/profile.d/conda.sh
+# CONDA_ENV=tiled
 # conda activate "${CONDA_ENV}"
 
 # strace -fe openat,lstat \
