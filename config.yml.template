@@ -3,6 +3,10 @@
 # tiled serve config --public --host 0.0.0.0 config.yml
 # http://SERVER.xray.aps.anl.gov:8000/
 
+# For security when using tiled server to write bluesky runs,
+# set the API key by setting env var
+# TILED_API_KEY rather than putting it in code.
+
 trees:
 
   - path: 45id_instrument
