@@ -20,7 +20,12 @@ TILED_CONDA_ENV=tiled
 
 
 activate_conda(){
-    CONDA_ROOT="/APSshare/miniconda/x86_64"
+    if [ "${CONDA_EXE}" == "" ]; then
+        echo "Need CONDA_EXE defined to activate '${TILED_CONDA_ENV}' environment."
+        echo "That is defined by activating *any* conda environment."
+        exit 1
+    fi
+    CONDA_ROOT=$(dirname $(readlink -f "${CONDA_EXE}"))
     source "${CONDA_ROOT}/etc/profile.d/conda.sh"
     conda activate "${TILED_CONDA_ENV}"
 }
