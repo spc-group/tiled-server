@@ -16,6 +16,14 @@ EXECUTABLE_SCRIPT="${PROJECT_DIR}/in-screen.sh"
 STARTER_SCRIPT=start-tiled.sh
 RETVAL=0
 SLEEP_DELAY=0.1  # wait for process, sometimes
+TILED_CONDA_ENV=tiled
+
+
+activate_conda(){
+    CONDA_ROOT="/APSshare/miniconda/x86_64"
+    source "${CONDA_ROOT}/etc/profile.d/conda.sh"
+    conda activate "${TILED_CONDA_ENV}"
+}
 
 
 get_pid(){
@@ -44,6 +52,7 @@ function pid_is_running(){
 
 
 start(){
+    activate_conda
     cd "${PROJECT_DIR}"
     "${EXECUTABLE_SCRIPT}" 2>&1 >> "${LOGFILE}" &
     sleep "${SLEEP_DELAY}"
@@ -80,7 +89,17 @@ restart(){
 }
 
 
+status(){
+    if pid_is_running; then
+		echo "# [$(/bin/date -Is) $0] running fine, so it seems"
+    else
+		echo "# [$(/bin/date -Is) $0] could not identify running process ${PID}"
+    fi
+}
+
+
 checkup(){
+    # 'crontab -e` to add entries for automated (re)start
     #=====================
     # call periodically (every 5 minutes) to see if tiled server is running
     #=====================
@@ -108,7 +127,8 @@ case "$1" in
     stop)     stop ;;
     restart)  restart ;;
     checkup)  checkup ;;
+    status)   status ;;
     *)
-        echo $"Usage: $0 {start|stop|restart|checkup}"
+        echo $"Usage: $0 {start|stop|restart|checkup|status}"
         exit 1
 esac
