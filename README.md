@@ -200,7 +200,7 @@ then start the *tiled* server with `./start-tiled.sh` or similar.
 
 ## Install
 
-1. Setup and activate a custom micromamba (conda) environment as directed
+1. Setup and activate a custom conda environment as directed
    in [`environment.yml`](./environment.yml).
 
    Note: This step defines a `CONDA_PREFIX` environment variable in the bash shell.  Used below.
