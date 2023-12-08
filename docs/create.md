@@ -40,9 +40,11 @@ Repeat this block if you have more than one catalog to be served (such as
 retired catalogs).  A comment section of the template shows how to add addtional
 catalogs.
 
-**NOTE**: If your files are written by EPICS area detector during bluesky runs,
-you do not need to add file directories to your tiled server configuration if
-these conditions are met:
+#### EPICS Area Detector data files
+
+If your files are written by EPICS area detector during bluesky runs, you do not
+need to add file directories to your tiled server configuration if these
+conditions are met:
 
 - Lightweight references to the file(s) and image(s) were written in databroker
   (standard ophyd practice).
