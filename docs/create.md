@@ -65,6 +65,12 @@ conditions are met:
 - Referenced files are available to the tiled server when their data is
   requested by a client of the tiled server.
 
+If a client requests data that comes from a referenced file and that file is not
+available at the time of the request, the tiled server will return a *500
+Internal Server Error* to the client.  For security reasons, a more detailed
+answer is not provided to the tiled client.  The tiled server console will
+usually provide the detail that the file could not be found.
+
 #### local data files
 
 *If* you want tiled to serve data files, the config file becomes longer.  The
