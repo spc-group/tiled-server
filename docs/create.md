@@ -2,6 +2,20 @@
 
 There are a few steps to creating a `tiled` server for bluesky data.
 
+CONTENTS
+
+- [Guide to Creating a `tiled` Server](#guide-to-creating-a-tiled-server)
+  - [Download the template](#download-the-template)
+  - [Create conda environment](#create-conda-environment)
+  - [Configure](#configure)
+    - [`config.yml`](#configyml)
+      - [databroker catalogs](#databroker-catalogs)
+      - [EPICS Area Detector data files](#epics-area-detector-data-files)
+      - [local data files](#local-data-files)
+  - [Run the server](#run-the-server)
+  - [Enable auto (re)start](#enable-auto-restart)
+  - [Clients](#clients)
+
 ## Download the template
 
 ```bash
@@ -190,12 +204,12 @@ logout).  The help command shows the commands available:
 Usage: ./tiled-manage.sh {start|stop|restart|checkup|status}
 </pre>
 
-For example, here is the server status on my workstation:
+For example, this linux command shows the server status on my workstation:
 
-<pre>
-<b>$</b> ./tiled-manage.sh status
+```bash
+./tiled-manage.sh status
 # [2023-12-08T11:06:36-06:00 ./tiled-manage.sh] running fine, so it seems
-</pre>
+```
 
 Launch the server (for regular use):
 
