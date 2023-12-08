@@ -33,7 +33,8 @@ conda env create --force -n tiled -f environment.yml --solver=libmamba
 conda activate tiled
 ```
 
-This may install a few hundred packages.
+This may install a few hundred packages, including databroker v2+.
+
 In a networked scenario, with many filesystems provided by NFS exports, writing
 to NFS filesystems may be very slow.  This process could take 5-10 minutes in
 such a scnario.  Compare notes with the procedures for creating a [conda
