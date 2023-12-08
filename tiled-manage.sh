@@ -15,7 +15,7 @@ PIDFILE="${PROJECT_DIR}/tiled-manage.pid"
 EXECUTABLE_SCRIPT="${PROJECT_DIR}/in-screen.sh"
 STARTER_SCRIPT=start-tiled.sh
 RETVAL=0
-SLEEP_DELAY=0.1  # wait for process, sometimes
+SLEEP_DELAY=1.5  # wait for process, sometimes
 TILED_CONDA_ENV=tiled
 
 
