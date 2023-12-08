@@ -33,6 +33,14 @@ conda env create --force -n tiled -f environment.yml --solver=libmamba
 conda activate tiled
 ```
 
+This may install a few hundred packages.
+In a networked scenario, with many filesystems provided by NFS exports, writing
+to NFS filesystems may be very slow.  This process could take 5-10 minutes in
+such a scnario.  Compare notes with the procedures for creating a [conda
+environment for bluesky
+operations](https://bcda-aps.github.io/bluesky_training/reference/_create_conda_env.html).
+
+
 ## Configure
 
 ### `config.yml`
@@ -42,6 +50,8 @@ Create your tiled configuration file from the template provided.
 ```bash
 cp config.yml.template config.yml
 ```
+
+Keep in mind, YAML, like Python uses indentation as syntax.
 
 #### databroker catalogs
 
@@ -53,6 +63,37 @@ Edit `config.yml` for your databroker catalog information:
 Repeat this block if you have more than one catalog to be served (such as
 retired catalogs).  A comment section of the template shows how to add addtional
 catalogs.
+
+<details>
+
+Sharp-eyed observers will note that the databroker configuration details specified for tiled are different than the ones they have been using with databroker v1.2.
+The config for tiled uses the same info but in databroker v2 format.
+
+databroker v1.2 format
+
+```yaml
+  example:
+    args:
+      asset_registry_db: mongodb://mymongoserver.localdomain:27017/example
+      metadatastore_db: mongodb://mymongoserver.localdomain:27017/example
+    driver: bluesky-mongo-normalized-catalog
+```
+
+same content in tiled format
+
+```yaml
+  - path: example
+    tree: databroker.mongo_normalized:Tree.from_uri
+    args:
+      uri: mongodb://mymongoserver.localdomain:27017/example
+```
+
+Why the change?  databroker is moving away from the intake library (the one that
+reads the v1.2 format).  `intake` seems to be slow to load (you see that when
+importing databroker v1.2).  New databroker v2 does not use intake.  And is
+faster to import.  (Other improvements under the hood.)
+
+</details>
 
 #### EPICS Area Detector data files
 
