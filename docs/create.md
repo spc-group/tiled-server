@@ -114,6 +114,8 @@ usually provide the detail that the file could not be found.
 
 #### local data files
 
+Skip this section if you are just getting started.
+
 *If* you want tiled to serve data files, the config file becomes longer.  The
 `config.yml` file has examples.  Each file directory tree (including all its
 subdirectories) is a separate entry in the `config.yml` file and a separate
