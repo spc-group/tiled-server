@@ -25,7 +25,7 @@ activate_conda(){
         echo "That is defined by activating *any* conda environment."
         exit 1
     fi
-    CONDA_ROOT=$(dirname $(readlink -f "${CONDA_EXE}"))
+    CONDA_ROOT=$(dirname $(dirname $(readlink -f "${CONDA_EXE}")))
     source "${CONDA_ROOT}/etc/profile.d/conda.sh"
     conda activate "${TILED_CONDA_ENV}"
 }
