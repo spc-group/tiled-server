@@ -1,6 +1,6 @@
 # Guide to Creating a `tiled` Server
 
-There are a few steps to creating a `tiled` server for bluesky data.
+There are a few steps to create a `tiled` server for bluesky data.
 
 CONTENTS
 
