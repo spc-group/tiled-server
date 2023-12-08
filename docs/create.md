@@ -72,6 +72,9 @@ conditions are met:
 subdirectories) is a separate entry in the `config.yml` file and a separate
 SQLite file.
 
+Note: Very likely that details are missing in this section.  Ask for help or
+create an [issue](https://github.com/BCDA-APS/tiled-template/issues/new).
+
 <details>
 <summary>Steps to add a directory tree</summary>
 
