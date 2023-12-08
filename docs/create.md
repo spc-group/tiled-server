@@ -35,12 +35,18 @@ conda activate tiled
 
 This may install a few hundred packages, including databroker v2+.
 
-In a networked scenario, with many filesystems provided by NFS exports, writing
-to NFS filesystems may be very slow.  This process could take 5-10 minutes in
-such a scnario.  Compare notes with the procedures for creating a [conda
-environment for bluesky
-operations](https://bcda-aps.github.io/bluesky_training/reference/_create_conda_env.html).
+<details>
+<summary>Might seem slow...</summary>
 
+In a networked scenario like the APS, with many filesystems provided by NFS
+exports and file backup & cache automation, processes that write many files to
+NFS filesystems (such as creating a conda environment) may be very slow.  It
+could take 5-10 minutes to create this conda environment.  Compare with the
+procedures for creating a [conda environment for bluesky
+operations](https://bcda-aps.github.io/bluesky_training/reference/_create_conda_env.html).
+Many of the same advisories apply here, too.
+
+</details>
 
 ## Configure
 
@@ -107,11 +113,16 @@ conditions are met:
 - Referenced files are available to the tiled server when their data is
   requested by a client of the tiled server.
 
+<details>
+<summary>Missing files...</summary>
+
 If a client requests data that comes from a referenced file and that file is not
 available at the time of the request, the tiled server will return a *500
 Internal Server Error* to the client.  For security reasons, a more detailed
 answer is not provided to the tiled client.  The tiled server console will
 usually provide the detail that the file could not be found.
+
+</details>
 
 #### local data files
 
@@ -199,7 +210,7 @@ A bash shell script is available to run your tiled server.  Take note of two imp
   will only respond to clients on this workstation (localhost).
 - `PORT`: What port will this server listen to?  Your choice here.  The default
   choice here is arbitrary yet advised.  Port 8000 is common but may be used by
-  some other local web server software.  We choose 8020 to avoid this
+  some other local web server software.  We choose port 8020 to avoid this
   possibility.
 
 Once the `config.yml` and `start-tiled.sh` (and any configured SQLite) files are
