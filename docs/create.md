@@ -225,5 +225,5 @@ You can use a web browser or find it more convenient to develop your own code
 that makes requests using either URIs or Python `tiled.client` calls.
 
 
-A Python Qt5 GUI program ([`gemviz`](https://bcda-aps.github.io/gemviz/)) is
+[`Gemviz`](https://bcda-aps.github.io/gemviz/), a Python Qt5 GUI program, is
 being developed to browse and visualize data from your databroker catalogs.
