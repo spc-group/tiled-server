@@ -186,9 +186,10 @@ INFO:     Uvicorn running on http://0.0.0.0:8020 (Press CTRL+C to quit)
 ```
 
 Note:  In this example, the `api_key` is randomly chosen by the server as it
-starts.  A new key is generated each time.  A local installation should provide
-its own key to allow authorized clients to write data (as bluesky documents from
-a RunEngine subscription).
+starts.  With this option for tiled server startup, a new key is generated each
+time.  A local installation should make a different choice, to provide its own
+key to allow authorized clients to write data (as bluesky documents from a
+RunEngine subscription).
 
 Enter the server URL (above: `http://0.0.0.0:8020`, not `https`) in a web
 browser to test the server responds.  Observe the server's console output each
