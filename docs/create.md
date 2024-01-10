@@ -2,6 +2,9 @@
 
 There are a few steps to create a `tiled` server for bluesky data.
 
+Jan Ilavsky has created an [article](https://github.com/jilavsky/SAXS_IgorCode/wiki/Reading-data-from-Tiled-server)
+about reading data from such a server.
+
 CONTENTS
 
 - [Guide to Creating a `tiled` Server](#guide-to-creating-a-tiled-server)
