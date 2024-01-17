@@ -73,8 +73,13 @@ Keep in mind, YAML, like Python uses indentation as syntax.
 
 Edit `config.yml` for your databroker catalog information:
 
-- `path`: name of this catalog (use this name from your bluesky sessions)
-- `uri` : address of your MongoDB catalog
+- `path`: name of this catalog (use this name from your bluesky sessions); can be found in:
+  - `bluesky/instrument/iconfig.yml`
+  - line 8-ish: `DATABROKER_CATALOG: &databroker_catalog catalog_name `
+- `uri` : address of your MongoDB catalog; in `mongodb://DB_SERVER.xray.aps.anl.gov:27017/45id_instrument-bluesky` replace
+  - `DB_SERVER` with `db_host_name` (can be found in 2nd column of [APS list table](https://github.com/BCDA-APS/bluesky_training/wiki))
+  - `45id_instrument` with `catalog_name`
+- change comment in line 4: in `http://SERVER.xray.aps.anl.gov:8000/` in `SERVER` with the host name (computer running the server)
 
 Repeat this block if you have more than one catalog to be served (such as
 retired catalogs).  A comment section of the template shows how to add addtional
