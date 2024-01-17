@@ -75,12 +75,16 @@ Edit `config.yml` for your databroker catalog information:
 
 - `path`: name of this catalog (use this name from your bluesky sessions); can be found in:
   - `bluesky/instrument/iconfig.yml`
-  - line 8-ish: `DATABROKER_CATALOG: &databroker_catalog catalog_name `
-- `uri` : address of your MongoDB catalog; in `mongodb://DB_SERVER.xray.aps.anl.gov:27017/45id_instrument-bluesky` replace
+  - catalog name is at the end of line ~8: `DATABROKER_CATALOG: &databroker_catalog some_catalog_name`
+- `uri` : address of your MongoDB catalog; in `mongodb://DB_SERVER.xray.aps.anl.gov:27017/45id_instrument-bluesky` replace:
   - `DB_SERVER` with `db_host_name` (can be found in 2nd column of [APS list table](https://github.com/BCDA-APS/bluesky_training/wiki))
   - `45id_instrument` with `catalog_name`
-- change comment in line 4: in `http://SERVER.xray.aps.anl.gov:8000/` in `SERVER` with the host name (computer running the server)
+- In line 4 `http://SERVER.xray.aps.anl.gov:8020/`:
+  - replace `SERVER` with the host name (computer running the tiled server)
+  - make sure the port number is consistent with the `./start-tiled.sh` script
 
+WARNING: consider whether you want this information publicly available or not (i.e. host tiled repo on aps gitlab or github)
+  
 Repeat this block if you have more than one catalog to be served (such as
 retired catalogs).  A comment section of the template shows how to add addtional
 catalogs.
