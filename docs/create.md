@@ -21,6 +21,12 @@ CONTENTS
 
 ## Download the template
 
+The download steps must be done on a workstation that can reach the public
+network.  Use the same account that will be used to run the tiled server.
+
+The tiled server should run on a workstation that has access to the controls
+subnet and any relevant filesystems with data to be served.
+
 ```bash
 cd your/projects/directory
 git clone https://github.com/BCDA-APS/tiled-template ./tiled-server
