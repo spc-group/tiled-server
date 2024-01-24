@@ -28,7 +28,7 @@ dependencies:
   # rely on pip to install tiled and its dependencies
   - pip
   - pip:
-    - databroker >=2.0.0b12
+    - databroker >=2.0.0b23
     - tiled[all] >=0.1.0a80
 
     # additional dependencies of the file directory support additions
