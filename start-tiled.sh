@@ -2,9 +2,7 @@
 
 # run the tiled server
 
-CONDA_ENV=tiled
 MY_DIR=$(realpath $(dirname $0))
-LOG_FILE="${MY_DIR}/logfile.txt"
 HOST=0.0.0.0
 PORT=8001
 

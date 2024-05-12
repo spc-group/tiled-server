@@ -1,6 +1,6 @@
 name: tiled
 
-# conda env create --force -n tiled --force -f ./environment.yml --solver=libmamba
+# conda env create --force -n tiled -f environment.yml --solver=libmamba
 # conda activate tiled
 
 channels:
@@ -8,7 +8,7 @@ channels:
   - defaults
 
 dependencies:
-  - python >=3.8, <3.11
+  - python >=3.8,<3.12
   - area-detector-handlers
   - hdf5plugin
 
@@ -21,15 +21,14 @@ dependencies:
   - h5py
   - hdf5plugin
   - punx
-  - pip
   - pysumreg
   - spec2nexus
 
   # rely on pip to install tiled and its dependencies
-  - pip
-  - pip:
+  - pip  # _install_ pip
+  - pip:  # _use_ pip to install these packages
     - databroker >=2.0.0b23
-    - tiled[all] >=0.1.0a80
+    - tiled[all] >=0.1.0a104
 
     # additional dependencies of the file directory support additions
     # install from GitHub repository
