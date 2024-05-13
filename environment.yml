@@ -28,9 +28,6 @@ dependencies:
   - pip  # _install_ pip
   - pip:  # _use_ pip to install these packages
     - databroker >=2.0.0b23
-=======
-    - databroker >=2.0.0b12
->>>>>>> upstream/main
     - tiled[all] >=0.1.0a104
 
     # additional dependencies of the file directory support additions

@@ -7,7 +7,6 @@ LOG_FILE="${MY_DIR}/logfile.txt"
 HOST=0.0.0.0  # access server by "localhost", hostname, or IP number
 # HOST="${HOSTNAME}"  # only access server by this exact name
 PORT=8020
->>>>>>> upstream/main
 
 # TODO: Test this.
 # source /APSshare/miniconda/x86_64/etc/profile.d/conda.sh
