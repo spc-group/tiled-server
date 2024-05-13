@@ -25,7 +25,7 @@ dependencies:
   - spec2nexus
 
   # rely on pip to install tiled and its dependencies
-  - pip  # _install_ pip
+  - pip
   - pip:  # _use_ pip to install these packages
     - databroker >=2.0.0b23
     - tiled[all] >=0.1.0a104
