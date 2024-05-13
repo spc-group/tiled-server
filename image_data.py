@@ -2,13 +2,16 @@
 Read a variety of image file formats as input for tiled.
 """
 
+import pathlib
+
+import numpy
+import yaml
 from PIL import Image
 from PIL.TiffImagePlugin import IFDRational
 from tiled.adapters.array import ArrayAdapter
 from tiled.adapters.mapping import MapAdapter
-import numpy
-import pathlib
-import yaml
+from tiled.structures.core import Spec as TiledSpec
+from ignore_data import IGNORE_SPECIFICATION
 
 ROOT = pathlib.Path(__file__).parent
 
@@ -26,7 +29,8 @@ MIMETYPES = """
 # TODO:     image/avif  not handled by PIL
 # TODO:     image/svg+xml  not handled by PIL
 
-EMPTY_ARRAY = numpy.array([0,0])
+EMPTY_ARRAY = numpy.array([0, 0])
+IMAGE_FILE_SPECIFICATION = TiledSpec("image_file", version="1.0")
 
 
 def interpret_IFDRational(data):
@@ -110,7 +114,7 @@ def image_metadata(image):
     return md
 
 
-def read_image(filename):
+def read_image(filename, **kwargs):
     fn = pathlib.Path(filename).name
     try:
         image = Image.open(filename)
@@ -128,20 +132,26 @@ def read_image(filename):
         pixels = numpy.array(pixels).reshape(shape)
         if len(shape) > 2:
             pixels = numpy.moveaxis(pixels, -1, 0)  # put the colors first
-        return ArrayAdapter.from_array(pixels, metadata=md)
+        return ArrayAdapter.from_array(
+            pixels, metadata=md, specs=[IMAGE_FILE_SPECIFICATION]
+        )
 
     except Exception as exc:
         arrays = dict(
             ignore=ArrayAdapter.from_array(
-                numpy.array([0,0]), metadata=dict(ignore="placeholder, ignore")
+                numpy.array([0, 0]),
+                metadata=dict(ignore="placeholder, ignore"),
+                specs=[IGNORE_SPECIFICATION],
             )
         )
         return MapAdapter(
-            arrays, metadata=dict(
+            arrays,
+            metadata=dict(
                 filename=str(filename),
                 exception=exc,
-                purpose="some problem reading this file as an image"
-            )
+                purpose="some problem reading this file as an image",
+                specs=[IGNORE_SPECIFICATION],
+            ),
         )
 
 

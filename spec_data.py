@@ -1,14 +1,17 @@
 """Read the SPEC data file format."""
 
+import datetime
+
+import numpy
 from spec2nexus import spec
 from tiled.adapters.array import ArrayAdapter
 from tiled.adapters.mapping import MapAdapter
-import datetime
-import numpy
-
+from tiled.structures.core import Spec as TiledSpec
 
 EXTENSIONS = []  # no uniform standard exists, many common patterns
-MIMETYPE = "text/spec_data"
+MIMETYPE = "text/x-spec_data"
+SPEC_FILE_SPECIFICATION = TiledSpec("SPEC_file", version="1.0")
+SPEC_SCAN_SPECIFICATION = TiledSpec("SPEC_scan", version="1.0")
 
 
 def read_diffractometer_metadata(diffractometer):
@@ -77,10 +80,11 @@ def read_spec_scan(scan):
     except ValueError as exc:
         arrays = {}
         md = dict(ValueError=exc, disposition="skipping")
-    return MapAdapter(arrays, metadata=md)
+    return MapAdapter(arrays, metadata=md, specs=[SPEC_SCAN_SPECIFICATION])
 
 
-def read_spec_data(filename):
+def read_spec_data(filename, **kwargs):
+    # kwargs has metadata known to the tiled database
     if not spec.is_spec_file_with_header(filename):
         raise spec.NotASpecDataFile(str(filename))
     sdf = spec.SpecDataFile(str(filename))
@@ -107,29 +111,32 @@ def read_spec_data(filename):
                 }
 
     # fmt: off
-    scans = {
-        f"S{scan_number}": read_spec_scan(scan)
-        for scan_number, scan in sdf.scans.items()
-    }
+    return MapAdapter(
+        {
+            f"S{scan_number}": read_spec_scan(scan)
+            for scan_number, scan in sdf.scans.items()
+        },
+        metadata=md,
+        specs=[SPEC_FILE_SPECIFICATION]
+    )
     # fmt: on
-    return MapAdapter(scans, metadata=md)
 
 
-def main():
+def developer():
     import pathlib
 
-    spec2nexus_data_path = (
-        pathlib.Path().home()
-        / "Documents"
-        / "projects"
-        / "prjemian"
-        / "spec2nexus"
-        / "src"
-        / "spec2nexus"
-        / "data"
-    )
+    # spec2nexus_data_path = (
+    #     pathlib.Path().home()
+    #     / "Documents"
+    #     / "projects"
+    #     / "prjemian"
+    #     / "spec2nexus"
+    #     / "src"
+    #     / "spec2nexus"
+    #     / "data"
+    # )
     test_data_path = pathlib.Path(__file__).parent / "data"
-    sixc_data_path = test_data_path / "diffractometer" / "sixc"
+    # sixc_data_path = test_data_path / "diffractometer" / "sixc"
     usaxs_data_path = test_data_path / "usaxs" / "2019"
     path = usaxs_data_path
     for filename in sorted(path.iterdir()):
@@ -142,4 +149,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    developer()
