@@ -1,3 +1,9 @@
+# Emacs temporary files
+*~
+
+# Login logs (APS-specific)
+.loglogin
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
