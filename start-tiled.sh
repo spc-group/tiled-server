@@ -14,7 +14,6 @@ PORT=8020
 # conda activate "${CONDA_ENV}"
 
 # strace -fe openat,lstat \
-
 tiled serve config \
     --port ${PORT} \
     --host ${HOST} \
