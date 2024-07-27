@@ -8,7 +8,7 @@ channels:
   - defaults
 
 dependencies:
-  - python >=3.8,<3.12
+  - python >=3.8
   - area-detector-handlers
   - hdf5plugin
 
@@ -16,6 +16,12 @@ dependencies:
   - bson
   - event-model
   - pymongo
+  - suitcase-mongo
+  - suitcase-msgpack
+  # - suitcase-utils  
+  # - suitcase-csv
+  # - suitcase-tiff
+  # - suitcase-specfile
 
   # additional dependencies of the file directory support additions
   - h5py
@@ -28,7 +34,7 @@ dependencies:
   - pip  # _install_ pip
   - pip:  # _use_ pip to install these packages
     - databroker >=2.0.0b23
-    - tiled[all] >=0.1.0a104
+    - tiled[all] >=0.1.0b5
 
     # additional dependencies of the file directory support additions
     # install from GitHub repository
