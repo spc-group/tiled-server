@@ -8,34 +8,27 @@ channels:
   - defaults
 
 dependencies:
-  - python >=3.8
-  - area-detector-handlers
-  - hdf5plugin
 
-  # dependencies not automatically installed by 'pip install tiled' below
-  - bson
-  - event-model
-  - pymongo
-  - suitcase-mongo
-  - suitcase-msgpack
-  # - suitcase-utils  
-  # - suitcase-csv
-  # - suitcase-tiff
-  # - suitcase-specfile
+  - python >=3.8
 
   # additional dependencies of the file directory support additions
-  - h5py
-  - hdf5plugin
   - punx
   - pysumreg
   - spec2nexus
 
   # rely on pip to install tiled and its dependencies
-  - pip  # _install_ pip
+  - pip
   - pip:  # _use_ pip to install these packages
     - databroker >=2.0.0b23
     - tiled[all] >=0.1.0b5
-
-    # additional dependencies of the file directory support additions
-    # install from GitHub repository
-    - https://raw.githubusercontent.com/EPICS-synApps/support/master/utils/mdaPythonUtils/mdalib-2022.post9-py2.py3-none-any.whl
+    - area-detector-handlers
+    - event-model
+    - suitcase-mongo
+    - suitcase-msgpack
+    - h5py
+    - hdfplugin
+    - pymongo
+    - hdf5plugin
+    - pillow
+    - netCDF4
+    - exdir
