@@ -88,10 +88,10 @@ async def test_file_structure(tiled_client):
     buff = io.BytesIO(buff.tobytes())
     with h5py.File(buff) as fp:
         # Check the top-level entry
-        assert fp.attrs['default'] == uid
+        assert fp.attrs["default"] == uid
         assert uid in fp.keys()
         entry = fp[uid]
-        assert entry.attrs['NX_class'] == "NXentry"
+        assert entry.attrs["NX_class"] == "NXentry"
         assert entry.attrs["default"] == "primary"
         # Check the default data group
         assert "primary" in entry.keys()
@@ -103,6 +103,5 @@ async def test_file_structure(tiled_client):
         assert "energy_energy" in primary.keys()
         assert "It_net_counts" in primary.keys()
         assert "I0_net_counts" in primary.keys()
-        assert primary['energy_energy'].attrs['NX_class'] == "NXdata"
+        assert primary["energy_energy"].attrs["NX_class"] == "NXdata"
         # assert False, primary['energy_energy']
-

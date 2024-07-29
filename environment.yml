@@ -26,7 +26,7 @@ dependencies:
     - suitcase-mongo
     - suitcase-msgpack
     - h5py
-    - hdfplugin
+    - hdf5plugin
     - pymongo
     - hdf5plugin
     - pillow

@@ -1,16 +1,24 @@
 import io
+import logging
 from typing import Mapping
 
 import h5py
 from tiled.utils import (
-        SerializationError,
-        ensure_awaitable,
-        modules_available,
-        safe_json_dump,
-    )
+    SerializationError,
+    ensure_awaitable,
+    modules_available,
+    safe_json_dump,
+)
+
+
+log = logging.getLogger(__name__)
 
 
 class NexusFile(h5py.File):
+    def __init__(self, *args, filter_for_access, **kwargs):
+        self.filter_for_access = filter_for_access
+        super().__init__(*args, **kwargs)
+
     def write_run(self, name, node, metadata: Mapping = {}):
         """Write a run to the HDF file as a nexus-compatiable entry.
 
@@ -27,15 +35,20 @@ class NexusFile(h5py.File):
           The HDF5 :NXentry group used to hold this run's data.
 
         """
-        self.attrs['NX_class'] = "NXroot"
-        self.attrs['default'] = name
+        self.attrs["NX_class"] = "NXroot"
+        self.attrs["default"] = name
         # Create NXentry
         entry = self.create_group(f"{name}")
         entry.attrs["NX_class"] = "NXentry"
-                # Write individual streams
+        # Write individual streams
         stream_names = metadata["summary"]["stream_names"]
         for stream_name in stream_names:
-            self.write_stream(name=stream_name, node=node[stream_name], parent=entry, metadata=metadata)
+            self.write_stream(
+                name=stream_name,
+                node=node[stream_name],
+                parent=entry,
+                metadata=metadata,
+            )
         default_stream = "primary" if "primary" in stream_names else stream_names[0]
         entry.attrs["default"] = default_stream
         # Write attributes
@@ -70,10 +83,16 @@ class NexusFile(h5py.File):
         data_group = parent.create_group(name)
         data_group.attrs["NX_class"] = "NXdata"
         # Add individual data columns
-        data = node['data']
-        for key, arr in data.items():
-            ds = data_group.create_dataset(key, data=arr)
-            ds.attrs['NX_class'] = "NXdata"
+        data = node["data"]
+        for key, child in data.items():
+            arr = self.filter_for_access(child).read()
+            try:
+                ds = data_group.create_dataset(key, data=arr)
+            except TypeError as exc:
+                log.exception(exc)
+                log.error(f"Could not create dataset for {type(child)} '{key}'.")
+                continue
+            ds.attrs["NX_class"] = "NXdata"
         return data_group
 
 
@@ -88,9 +107,9 @@ async def serialize_nexus(node, metadata, filter_for_access):
     buffer = io.BytesIO()
     root_node = node
     # MSG = "Metadata contains types or structure that does not fit into HDF5."
-    with NexusFile(buffer, mode="w") as fp:
+    with NexusFile(buffer, mode="w", filter_for_access=filter_for_access) as fp:
         # Write data entry to the nexus file
-        fp.write_run(name=metadata['summary']['uid'], node=node, metadata=metadata)
+        fp.write_run(name=metadata["summary"]["uid"], node=node, metadata=metadata)
         # try:
         #     file.attrs.update(metadata)
         # except TypeError:
