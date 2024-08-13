@@ -19,7 +19,7 @@ class NexusFile(h5py.File):
         self.filter_for_access = filter_for_access
         super().__init__(*args, **kwargs)
 
-    def write_run(self, name, node, metadata: Mapping = {}):
+    async def write_run(self, name, node, metadata: Mapping = {}):
         """Write a run to the HDF file as a nexus-compatiable entry.
 
         *node* should be the container for this run. E.g.
@@ -43,7 +43,7 @@ class NexusFile(h5py.File):
         # Write individual streams
         stream_names = metadata["summary"]["stream_names"]
         for stream_name in stream_names:
-            self.write_stream(
+            await self.write_stream(
                 name=stream_name,
                 node=node[stream_name],
                 parent=entry,
@@ -54,7 +54,7 @@ class NexusFile(h5py.File):
         # Write attributes
         return entry
 
-    def write_stream(self, name, node, parent, metadata: Mapping = {}):
+    async def write_stream(self, name, node, parent, metadata: Mapping = {}):
         """Write a stream to the HDF file as a nexus-compatiable entry.
 
         *node* should be the container for this stream. E.g.
@@ -82,12 +82,16 @@ class NexusFile(h5py.File):
         """
         data_group = parent.create_group(name)
         data_group.attrs["NX_class"] = "NXdata"
-        # Add individual data columns
+        # Make sure we have access to these data
         data = node["data"]
         if self.filter_for_access is not None:
             data = self.filter_for_access(data)
+        # Add individual data columns
         for key, child in data.items():
-            arr = child.read()
+            arr = await ensure_awaitable(child.read)
+            # For some reason these have an extra dimension, so get rid of it
+            arr = arr[0]
+            # Create the data set for the new data column
             try:
                 ds = data_group.create_dataset(key, data=arr)
             except TypeError as exc:
@@ -111,29 +115,5 @@ async def serialize_nexus(node, metadata, filter_for_access):
     # MSG = "Metadata contains types or structure that does not fit into HDF5."
     with NexusFile(buffer, mode="w", filter_for_access=filter_for_access) as fp:
         # Write data entry to the nexus file
-        fp.write_run(name=metadata["summary"]["uid"], node=node, metadata=metadata)
-        # try:
-        #     file.attrs.update(metadata)
-        # except TypeError:
-        #     raise SerializationError(MSG)
-        # async for key_path, array_adapter in walk(node, filter_for_access):
-        #     group = file
-        #     node = root_node
-        #     for key in key_path[:-1]:
-        #         if hasattr(node, "lookup_adapter"):
-        #             node = await node.lookup_adapter([key])
-        #         else:
-        #             node = node[key]
-        #         if key in group:
-        #             group = group[key]
-        #         else:
-        #             group = group.create_group(key)
-        #             try:
-        #                 group.attrs.update(node.metadata())
-        #             except TypeError:
-        #                 raise SerializationError(MSG)
-        #     data = await ensure_awaitable(array_adapter.read)
-        #     dataset = group.create_dataset(key_path[-1], data=data)
-        #     for k, v in array_adapter.metadata().items():
-        #         dataset.attrs.create(k, v)
+        await fp.write_run(name=metadata["summary"]["uid"], node=node, metadata=metadata)
     return buffer.getbuffer()
