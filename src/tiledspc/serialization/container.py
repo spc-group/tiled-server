@@ -84,8 +84,10 @@ class NexusFile(h5py.File):
         data_group.attrs["NX_class"] = "NXdata"
         # Add individual data columns
         data = node["data"]
+        if self.filter_for_access is not None:
+            data = self.filter_for_access(data)
         for key, child in data.items():
-            arr = self.filter_for_access(child).read()
+            arr = child.read()
             try:
                 ds = data_group.create_dataset(key, data=arr)
             except TypeError as exc:

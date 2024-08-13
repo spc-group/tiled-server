@@ -101,6 +101,7 @@ async def test_file_structure(tiled_client):
         # assert primary.attrs["axes"] == ""
         # Check some of the run columns
         assert "energy_energy" in primary.keys()
+        assert primary['energy_energy'].shape == (100,)
         assert "It_net_counts" in primary.keys()
         assert "I0_net_counts" in primary.keys()
         assert primary["energy_energy"].attrs["NX_class"] == "NXdata"

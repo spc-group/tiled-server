@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["black", "pytest", "build", "twine", "flake8"]
+dev = ["black", "pytest", "pytest-asyncio", "build", "twine", "flake8"]
 
 [project.urls]
 "Homepage" = "https://github.com/spc-group/tiled-server"
