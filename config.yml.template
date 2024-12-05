@@ -15,6 +15,10 @@ trees:
       # for unsecured access
       uri: mongodb://DB_SERVER.xray.aps.anl.gov:27017/45id_instrument-bluesky
 
+media_types:
+  container:
+    application/x-nexus: tiledspc.serialization.container:serialize_nexus
+
   # - path: older_45id_instrument
   #   tree: databroker.mongo_normalized:Tree.from_uri
   #   args:
