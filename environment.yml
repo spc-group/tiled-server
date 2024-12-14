@@ -9,7 +9,7 @@ channels:
 
 dependencies:
 
-  - python >=3.8
+  - python <=3.12
 
   # additional dependencies of the file directory support additions
   - punx
@@ -19,10 +19,10 @@ dependencies:
   # rely on pip to install tiled and its dependencies
   - pip
   - pip:  # _use_ pip to install these packages
-    - databroker >=2.0.0b23
-    - tiled[all] >=0.1.0b5
+    - databroker >=2.0.0b52
+    - tiled[all] >=0.1.0b11
     - area-detector-handlers
-    - event-model
+    - event-model >=1.22.1
     - suitcase-mongo
     - suitcase-msgpack
     - h5py

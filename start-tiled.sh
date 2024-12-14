@@ -18,4 +18,5 @@ tiled serve config \
     --port ${PORT} \
     --host ${HOST} \
     --public \
-    "${MY_DIR}/config.yml"
+    "${MY_DIR}/config.yml" \
+    "$@"
