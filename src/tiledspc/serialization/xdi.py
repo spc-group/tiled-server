@@ -3,6 +3,8 @@ import logging
 import io
 import asyncio
 from collections.abc import Mapping
+from typing import IO, Any
+from pandas import DataFrame
 
 import pandas as pd
 from tiled.utils import ensure_awaitable
@@ -88,22 +90,13 @@ async def load_datasets(node: CatalogNodeAdapter) -> tuple[CatalogNodeAdapter, C
     return stream_node, internal_items['events'], config_items['energy']
 
 
-
-async def serialize_xdi(node, metadata, filter_for_access):
-    """Write a bluesky run in XDI format.
-
-    Assumes that *node* is a BlueskyRun.
-
-    Follows the XDI spectroscopy definition."
-
-    """
-    stream_node, data_node, config_node = await load_datasets(node)
-    data_keys_ = data_keys(stream_node.metadata())
-    # Get extra data
-    data, energy_config = await asyncio.gather(
-        data_node.read(),
-        config_node.read(),
-    )
+def build_xdi(
+    metadata: dict[str, Any],
+    stream_metadata: dict[str, Any],
+    data: DataFrame,
+    energy_config: DataFrame,
+) -> IO[bytes]:
+    data_keys_ = data_keys(stream_metadata)
     d_spacing = energy_config['energy-monochromator-d_spacing'].values[0]
     # Write headers
     xdi_text = ""
@@ -115,4 +108,26 @@ async def serialize_xdi(node, metadata, filter_for_access):
     data.to_csv(buffer, sep="\t", header=False, columns=data_keys_.keys(), index=False)
     buffer.seek(0)
     xdi_text += buffer.read()
-    return xdi_text.encode("utf-8")
+    return xdi_text
+
+async def serialize_xdi(node, metadata, filter_for_access):
+    """Write a bluesky run in XDI format.
+
+    Assumes that *node* is a BlueskyRun.
+
+    Follows the XDI spectroscopy definition."
+
+    """
+    stream_node, data_node, config_node = await load_datasets(node)
+    # Get extra data
+    data, energy_config = await asyncio.gather(
+        data_node.read(),
+        config_node.read(),
+    )
+    xdi_text = build_xdi(
+        metadata=metadata,
+        stream_metadata=stream_node.metadata(),
+        data=data,
+        energy_config=energy_config
+    )
+    return xdi_text.encode('utf-8')

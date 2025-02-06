@@ -6,7 +6,7 @@ import io
 import h5py
 import pytest
 
-from tiledspc.serialization.xdi import serialize_xdi, headers
+from tiledspc.serialization.xdi import serialize_xdi, headers, build_xdi
 
 # <BlueskyRun({'primary'})>
 metadata = {
@@ -89,9 +89,11 @@ async def xdi_text(tiled_client):
     uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
     container = tiled_client[uid]
     # Generate the headers
-    buff = await serialize_xdi(container, metadata, filter_for_access=None)
-    buff.seek(0)
-    xdi_text = buff.read()
+    xdi_text = build_xdi(metadata,
+                         container['primary'].metadata,
+                         data=container['primary/internal/events'].read(),
+                         energy_config=container['primary/config/energy'].read(),
+                         )
     return xdi_text
 
 
