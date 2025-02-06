@@ -10,7 +10,6 @@ from tiled.utils import (
     safe_json_dump,
 )
 
-
 log = logging.getLogger(__name__)
 
 
@@ -115,5 +114,7 @@ async def serialize_nexus(node, metadata, filter_for_access):
     # MSG = "Metadata contains types or structure that does not fit into HDF5."
     with NexusFile(buffer, mode="w", filter_for_access=filter_for_access) as fp:
         # Write data entry to the nexus file
-        await fp.write_run(name=metadata["summary"]["uid"], node=node, metadata=metadata)
+        await fp.write_run(
+            name=metadata["summary"]["uid"], node=node, metadata=metadata
+        )
     return buffer.getbuffer()

@@ -1,12 +1,10 @@
-import pandas as pd
-import pytest_asyncio
 import datetime
 import io
 
-import h5py
+import pandas as pd
 import pytest
 
-from tiledspc.serialization.xdi import serialize_xdi, headers, build_xdi
+from tiledspc.serialization.xdi import build_xdi
 
 # <BlueskyRun({'primary'})>
 metadata = {
@@ -84,16 +82,17 @@ metadata = {
 }
 
 
-@pytest_asyncio.fixture
-async def xdi_text(tiled_client):
+@pytest.fixture()
+def xdi_text(tiled_client):
     uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
     container = tiled_client[uid]
     # Generate the headers
-    xdi_text = build_xdi(metadata,
-                         container['primary'].metadata,
-                         data=container['primary/internal/events'].read(),
-                         energy_config=container['primary/config/energy'].read(),
-                         )
+    xdi_text = build_xdi(
+        metadata,
+        container["primary"].metadata,
+        data=container["primary/internal/events"].read(),
+        energy_config=container["primary/config/energy"].read(),
+    )
     return xdi_text
 
 
@@ -118,7 +117,7 @@ def test_optional_headers(xdi_text):
     }
     print(xdi_text)
     for key, val in expected_metadata.items():
-        assert f"# {key.lower()}: {val.lower()}\n" in xdi_text.lower()    
+        assert f"# {key.lower()}: {val.lower()}\n" in xdi_text.lower()
 
 
 def test_data(xdi_text):
@@ -128,5 +127,5 @@ def test_data(xdi_text):
     # Check for the header
     assert "# energy\tIt-net_current" in xdi_text
     # Check the data
-    df = pd.read_csv(buff, comment='#', sep="\t")
+    df = pd.read_csv(buff, comment="#", sep="\t")
     assert len(df.columns) == 2

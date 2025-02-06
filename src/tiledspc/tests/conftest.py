@@ -1,11 +1,10 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 from tiled.adapters.mapping import MapAdapter
 from tiled.adapters.table import TableAdapter
 from tiled.client import Context, from_context
 from tiled.server.app import build_app
-
 
 # Tiled data to use for testing
 # Some mocked test data
@@ -40,7 +39,6 @@ data_keys = {
         "source": "ca://25idcVME:3820:scaler1.T",
         "units": "eV",
     },
-
     "I0-mcs-scaler-channels-0-net_count": {
         "dtype": "number",
         "dtype_numpy": "<f8",
@@ -138,16 +136,18 @@ bluesky_mapping = {
         {
             "primary": MapAdapter(
                 {
-                    "internal": MapAdapter(
-                        {
-                            "events": TableAdapter.from_pandas(run1)
-                        }),
+                    "internal": MapAdapter({"events": TableAdapter.from_pandas(run1)}),
                     "config": MapAdapter(
                         {
-                            "energy": TableAdapter.from_pandas(pd.DataFrame({
-                                "energy-monochromator-d_spacing": [3.13],
-                            })),
-                        }),
+                            "energy": TableAdapter.from_pandas(
+                                pd.DataFrame(
+                                    {
+                                        "energy-monochromator-d_spacing": [3.13],
+                                    }
+                                )
+                            ),
+                        }
+                    ),
                 },
                 metadata={"hints": hints, "data_keys": data_keys},
             ),
@@ -165,9 +165,11 @@ bluesky_mapping = {
         {
             "primary": MapAdapter(
                 {
-                    "internal": MapAdapter({
-                        "events": TableAdapter.from_pandas(run1),
-                    }),
+                    "internal": MapAdapter(
+                        {
+                            "events": TableAdapter.from_pandas(run1),
+                        }
+                    ),
                 },
                 metadata={"hints": hints},
             ),
@@ -188,7 +190,8 @@ bluesky_mapping = {
                     "internal": MapAdapter(
                         {
                             "events": TableAdapter.from_pandas(grid_scan),
-                        }),
+                        }
+                    ),
                 },
                 metadata={
                     "descriptors": [

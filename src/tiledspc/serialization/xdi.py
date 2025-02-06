@@ -1,15 +1,12 @@
-import datetime as dt
-import logging
-import io
 import asyncio
+import datetime as dt
+import io
+import logging
 from collections.abc import Mapping
 from typing import IO, Any
+
 from pandas import DataFrame
-
-import pandas as pd
-from tiled.utils import ensure_awaitable
 from tiled.catalog.adapter import CatalogNodeAdapter
-
 
 __all__ = ["serialize_xdi"]
 
@@ -17,7 +14,9 @@ __all__ = ["serialize_xdi"]
 log = logging.getLogger(__name__)
 
 
-def headers(metadata: Mapping[str, Mapping], data_keys: Mapping[str, Mapping], d_spacing: str):
+def headers(
+    metadata: Mapping[str, Mapping], data_keys: Mapping[str, Mapping], d_spacing: str
+):
     """Generate individual header lines for the XDI file."""
     # Version information
     versions = ["XDI/1.0"]
@@ -41,7 +40,7 @@ def headers(metadata: Mapping[str, Mapping], data_keys: Mapping[str, Mapping], d
         yield f"# Element.edge: {edge}"
     yield f"# Mono.d_spacing: {d_spacing}"
     # Facility information
-    start_time = dt.datetime.fromtimestamp(start_doc['time'], dt.timezone.utc)
+    start_time = dt.datetime.fromtimestamp(start_doc["time"], dt.timezone.utc)
     start_time = start_time.astimezone()
     yield f"# Scan.start_time: {start_time.strftime('%Y-%m-%d %H:%M:%S%z')}"
     md_mappings = [
@@ -63,14 +62,16 @@ def data_keys(metadata: Mapping[str, Mapping | str | float | int]):
     *metadata* should be the metadata dictionary for a specific stream.
 
     """
-    dkeys = metadata['data_keys']
+    dkeys = metadata["data_keys"]
     hints = metadata["hints"]
-    hints = [hint for dev_hints in hints.values() for hint in dev_hints['fields']]
+    hints = [hint for dev_hints in hints.values() for hint in dev_hints["fields"]]
     dkeys = {key: desc for key, desc in dkeys.items() if key in hints}
     return dkeys
 
 
-async def load_datasets(node: CatalogNodeAdapter) -> tuple[CatalogNodeAdapter, CatalogNodeAdapter, CatalogNodeAdapter]:
+async def load_datasets(
+    node: CatalogNodeAdapter,
+) -> tuple[CatalogNodeAdapter, CatalogNodeAdapter, CatalogNodeAdapter]:
     """Decide which datasets to plot.
 
     Returns
@@ -83,11 +84,15 @@ async def load_datasets(node: CatalogNodeAdapter) -> tuple[CatalogNodeAdapter, C
       The node for the internal config data frame.
     """
     items = {key: node for key, node in await node.items_range(0, None)}
-    stream_node = items['primary']
+    stream_node = items["primary"]
     stream_items = {key: node for key, node in await stream_node.items_range(0, None)}
-    internal_items = {key: node for key, node in await stream_items['internal'].items_range(0, None)}
-    config_items = {key: node for key, node in await stream_items['config'].items_range(0, None)}
-    return stream_node, internal_items['events'], config_items['energy']
+    internal_items = {
+        key: node for key, node in await stream_items["internal"].items_range(0, None)
+    }
+    config_items = {
+        key: node for key, node in await stream_items["config"].items_range(0, None)
+    }
+    return stream_node, internal_items["events"], config_items["energy"]
 
 
 def build_xdi(
@@ -97,7 +102,7 @@ def build_xdi(
     energy_config: DataFrame,
 ) -> IO[bytes]:
     data_keys_ = data_keys(stream_metadata)
-    d_spacing = energy_config['energy-monochromator-d_spacing'].values[0]
+    d_spacing = energy_config["energy-monochromator-d_spacing"].values[0]
     # Write headers
     xdi_text = ""
     hdrs = headers(metadata, data_keys=data_keys_, d_spacing=f"{d_spacing}")
@@ -109,6 +114,7 @@ def build_xdi(
     buffer.seek(0)
     xdi_text += buffer.read()
     return xdi_text
+
 
 async def serialize_xdi(node, metadata, filter_for_access):
     """Write a bluesky run in XDI format.
@@ -128,6 +134,6 @@ async def serialize_xdi(node, metadata, filter_for_access):
         metadata=metadata,
         stream_metadata=stream_node.metadata(),
         data=data,
-        energy_config=energy_config
+        energy_config=energy_config,
     )
-    return xdi_text.encode('utf-8')
+    return xdi_text.encode("utf-8")
