@@ -11,9 +11,9 @@ from tiled.server.app import build_app
 # Some mocked test data
 run1 = pd.DataFrame(
     {
-        "energy_energy": np.linspace(8300, 8400, num=100),
-        "It_net_counts": np.abs(np.sin(np.linspace(0, 4 * np.pi, num=100))),
-        "I0_net_counts": np.linspace(1, 2, num=100),
+        "energy": np.linspace(8300, 8400, num=100),
+        "It-net_current": np.abs(np.sin(np.linspace(0, 4 * np.pi, num=100))),
+        "I0-net_current": np.linspace(1, 2, num=100),
     }
 )
 
@@ -27,6 +27,20 @@ grid_scan = pd.DataFrame(
 )
 
 data_keys = {
+    "energy": {
+        "dtype": "number",
+        "dtype_numpy": "<f8",
+        "limits": {
+            "control": {"high": 0.0, "low": 0.0},
+            "display": {"high": 0.0, "low": 0.0},
+        },
+        "object_name": "energy",
+        "precision": 3,
+        "shape": [],
+        "source": "ca://25idcVME:3820:scaler1.T",
+        "units": "eV",
+    },
+
     "I0-mcs-scaler-channels-0-net_count": {
         "dtype": "number",
         "dtype_numpy": "<f8",
@@ -74,6 +88,14 @@ data_keys = {
         "source": "soft://I0-net_current(gain,count,clock_count,clock_frequency,counts_per_volt_second)",
         "units": "A",
     },
+    "It-net_current": {
+        "dtype": "number",
+        "dtype_numpy": "<f8",
+        "object_name": "It",
+        "shape": [],
+        "source": "soft://It-net_current(gain,count,clock_count,clock_frequency,counts_per_volt_second)",
+        "units": "A",
+    },
     "ge_8element": {
         "dtype": "array",
         "dtype_numpy": "<u4",
@@ -107,7 +129,8 @@ data_keys = {
 
 
 hints = {
-    "energy": {"fields": ["energy_energy", "energy_id_energy_readback"]},
+    "energy": {"fields": ["energy", "energy_id_energy_readback"]},
+    "It": {"fields": ["It-net_current"]},
 }
 
 bluesky_mapping = {
@@ -119,6 +142,12 @@ bluesky_mapping = {
                         {
                             "events": TableAdapter.from_pandas(run1)
                         }),
+                    "config": MapAdapter(
+                        {
+                            "energy": TableAdapter.from_pandas(pd.DataFrame({
+                                "energy-monochromator-d_spacing": [3.13],
+                            })),
+                        }),
                 },
                 metadata={"hints": hints, "data_keys": data_keys},
             ),
@@ -128,7 +157,7 @@ bluesky_mapping = {
             "start": {
                 "plan_name": "xafs_scan",
                 "uid": "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f",
-                "hints": {"dimensions": [[["energy_energy"], "primary"]]},
+                "hints": {"dimensions": [[["energy"], "primary"]]},
             },
         },
     ),
