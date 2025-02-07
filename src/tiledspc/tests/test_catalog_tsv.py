@@ -1,16 +1,19 @@
 import datetime
 import io
 
-import h5py
+import pandas as pd
 import pytest
 
-from tiledspc.serialization.container import serialize_nexus
+from tiledspc.serialization.tsv import build_xdi
 
 # <BlueskyRun({'primary'})>
 metadata = {
     "start": {
         "detectors": ["I0"],
+        "edge": "Ni_K",
         "hints": {"dimensions": [[["pitch2"], "primary"]]},
+        "facility_id": "Advanced Photon Source",
+        "beamline_id": "255-ID-Z",
         "motors": ["pitch2"],
         "num_intervals": 19,
         "num_points": 20,
@@ -79,30 +82,75 @@ metadata = {
 }
 
 
-@pytest.mark.asyncio
-async def test_file_structure(tiled_client):
+@pytest.fixture()
+def xdi_text(tiled_client):
     uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
     container = tiled_client[uid]
-    # Perform the serialization
-    buff = await serialize_nexus(container, metadata, filter_for_access=None)
-    buff = io.BytesIO(buff.tobytes())
-    with h5py.File(buff) as fp:
-        # Check the top-level entry
-        assert fp.attrs["default"] == uid
-        assert uid in fp.keys()
-        entry = fp[uid]
-        assert entry.attrs["NX_class"] == "NXentry"
-        assert entry.attrs["default"] == "primary"
-        # Check the default data group
-        assert "primary" in entry.keys()
-        primary = entry["primary"]
-        assert primary.attrs["NX_class"] == "NXdata"
-        # assert primary.attrs["signal"] == ""
-        # assert primary.attrs["axes"] == ""
-        # Check some of the run columns
-        assert "energy_energy" in primary.keys()
-        assert primary["energy_energy"].shape == (100,)
-        assert "It_net_counts" in primary.keys()
-        assert "I0_net_counts" in primary.keys()
-        assert primary["energy_energy"].attrs["NX_class"] == "NXdata"
-        # assert False, primary['energy_energy']
+    # Generate the headers
+    xdi_text = build_xdi(
+        metadata,
+        container["primary"].metadata,
+        data=container["primary/internal/events"].read(),
+        energy_config=container["primary/config/energy"].read(),
+        strict=True,
+    )
+    return xdi_text
+
+
+@pytest.fixture()
+def tsv_text(tiled_client):
+    uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
+    container = tiled_client[uid]
+    # Generate the headers
+    xdi_text = build_xdi(
+        {},
+        container["primary"].metadata,
+        data=container["primary/internal/events"].read(),
+        energy_config=None,
+        strict=False,
+    )
+    return xdi_text
+
+
+def test_required_headers(xdi_text):
+    print(xdi_text)
+    assert "# XDI/1.0 bluesky/1.9.0 ophyd/1.7.0" in xdi_text
+    assert "# Column.1: energy eV" in xdi_text
+    assert "# Column.2: It-net_current A" in xdi_text
+    assert "# Element.symbol: Ni" in xdi_text
+    assert "# Element.edge: K" in xdi_text
+    assert "# Mono.d_spacing: 3" in xdi_text  # Not implemented yet
+    assert "# -------------" in xdi_text
+
+
+def test_optional_headers(xdi_text):
+    expected_metadata = {
+        "Facility.name": "Advanced Photon Source",
+        # "Facility.xray_source": "insertion device",
+        "Beamline.name": "255-ID-Z",
+        "Scan.start_time": "2022-10-06 09:14:57-0500",
+        "uid": "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f",
+    }
+    for key, val in expected_metadata.items():
+        assert f"# {key.lower()}: {val.lower()}\n" in xdi_text.lower()
+
+
+def test_tsv_headers(tsv_text):
+    """Do we still get a valid TSV file without any metadata."""
+    assert "# energy\tIt-net_current" in tsv_text
+    assert "d_spacing" not in tsv_text
+    # Check the data
+    buff = io.StringIO(tsv_text)
+    df = pd.read_csv(buff, comment="#", sep="\t")
+    assert len(df.columns) == 2
+
+
+def test_data(xdi_text):
+    """Check that the TSV data section is present and correct."""
+    # Read as if it were a pandas dataframe
+    buff = io.StringIO(xdi_text)
+    # Check for the header
+    assert "# energy\tIt-net_current" in xdi_text
+    # Check the data
+    df = pd.read_csv(buff, comment="#", sep="\t")
+    assert len(df.columns) == 2

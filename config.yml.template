@@ -18,6 +18,7 @@ trees:
 media_types:
   container:
     application/x-nexus: tiledspc.serialization.container:serialize_nexus
+    text/x-xdi: tiledspc.serialization.xdi:serialize_xdi
 
   # - path: older_45id_instrument
   #   tree: databroker.mongo_normalized:Tree.from_uri
