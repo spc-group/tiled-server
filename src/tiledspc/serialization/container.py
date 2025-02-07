@@ -4,10 +4,7 @@ from typing import Mapping
 
 import h5py
 from tiled.utils import (
-    SerializationError,
     ensure_awaitable,
-    modules_available,
-    safe_json_dump,
 )
 
 log = logging.getLogger(__name__)

@@ -7,6 +7,7 @@ from typing import IO, Any
 
 from pandas import DataFrame
 from tiled.catalog.adapter import CatalogNodeAdapter
+from tiled.utils import SerializationError
 
 __all__ = ["serialize_xdi"]
 
@@ -15,8 +16,11 @@ log = logging.getLogger(__name__)
 
 
 def headers(
-        metadata: Mapping[str, Mapping], data_keys: Mapping[str, Mapping], d_spacing: str | None, *,
-        strict: bool
+    metadata: Mapping[str, Mapping],
+    data_keys: Mapping[str, Mapping],
+    d_spacing: str | None,
+    *,
+    strict: bool,
 ):
     """Generate individual header lines for the XDI file."""
     start_doc = metadata.get("start", {})
@@ -31,15 +35,25 @@ def headers(
         yield f"# Column.{num+1}: {key} {info.get('units', '')}"
     # X-ray edge information
     if "edge" in start_doc or strict:
-        edge_str = start_doc["edge"]
-        elem, edge = edge_str.split("_")
+        try:
+            edge_str = start_doc["edge"]
+            elem, edge = edge_str.split("_")
+        except KeyError:
+            raise SerializationError(
+                "Metadata *edge* is required with strict XDI formatting."
+            )
+        except ValueError:
+            raise SerializationError(
+                f"Metadata *edge* '{edge_str}' not in expected format."
+            )
         yield f"# Element.symbol: {elem}"
         yield f"# Element.edge: {edge}"
     # Instrument metadata
     if d_spacing is None and strict:
-        raise ValueError("Argument *d_spacing* cannot be none with strict XDI formatting.")
+        raise SerializationError(
+            "Argument *d_spacing* cannot be none with strict XDI formatting."
+        )
     elif d_spacing not in [None, "None"]:
-        print(f"Yielding d_spacing: {d_spacing} {type(d_spacing)}")
         yield f"# Mono.d_spacing: {d_spacing}"
     # Facility information
     if "time" in start_doc or strict:
@@ -127,10 +141,13 @@ def build_xdi(
         d_spacing = None
     # Write headers
     xdi_text = ""
-    hdrs = headers(metadata, data_keys=data_keys_, d_spacing=f"{d_spacing}", strict=strict)
+    hdrs = headers(
+        metadata, data_keys=data_keys_, d_spacing=f"{d_spacing}", strict=strict
+    )
     xdi_text += "\n".join(hdrs) + "\n"
     # Write data
-    xdi_text += f"# {'\t'.join(data_keys_.keys())}\n"
+    cols = "\t".join(data_keys_.keys())
+    xdi_text += f"# {cols}\n"
     buffer = io.StringIO()
     data.to_csv(buffer, sep="\t", header=False, columns=data_keys_.keys(), index=False)
     buffer.seek(0)
@@ -169,6 +186,10 @@ async def serialize_xdi(node, metadata, filter_for_access):
     """
     stream_node, data_node, config_node = await load_datasets(node)
     # Get extra data
+    if config_node is None:
+        raise SerializationError(
+            "Could not read needed configuration data for XDI file."
+        )
     data, energy_config = await asyncio.gather(
         data_node.read(),
         config_node.read(),
