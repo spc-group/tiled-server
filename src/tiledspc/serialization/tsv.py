@@ -96,7 +96,11 @@ async def load_datasets(
     config_items = {
         key: node for key, node in await stream_items["config"].items_range(0, None)
     }
-    return stream_node, internal_items["events"], config_items["energy"]
+    try:
+        energy_frame = config_items["energy"]
+    except KeyError:
+        energy_frame = None
+    return stream_node, internal_items["events"], energy_frame
 
 
 def build_xdi(
@@ -144,15 +148,13 @@ async def serialize_tsv(node, metadata, filter_for_access):
     """
     stream_node, data_node, config_node = await load_datasets(node)
     # Get extra data
-    data, energy_config = await asyncio.gather(
-        data_node.read(),
-        config_node.read(),
-    )
+    data = await data_node.read()
     xdi_text = build_xdi(
         metadata=metadata,
         stream_metadata=stream_node.metadata(),
         data=data,
-        energy_config=energy_config,
+        energy_config=None,
+        strict=False,
     )
     return xdi_text.encode("utf-8")
 
@@ -176,5 +178,6 @@ async def serialize_xdi(node, metadata, filter_for_access):
         stream_metadata=stream_node.metadata(),
         data=data,
         energy_config=energy_config,
+        strict=True,
     )
     return xdi_text.encode("utf-8")
