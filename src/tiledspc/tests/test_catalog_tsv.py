@@ -4,7 +4,7 @@ import io
 import pandas as pd
 import pytest
 
-from tiledspc.serialization.xdi import build_xdi
+from tiledspc.serialization.tsv import build_xdi
 
 # <BlueskyRun({'primary'})>
 metadata = {
@@ -92,6 +92,22 @@ def xdi_text(tiled_client):
         container["primary"].metadata,
         data=container["primary/internal/events"].read(),
         energy_config=container["primary/config/energy"].read(),
+        strict=True,
+    )
+    return xdi_text
+
+
+@pytest.fixture()
+def tsv_text(tiled_client):
+    uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
+    container = tiled_client[uid]
+    # Generate the headers
+    xdi_text = build_xdi(
+        {},
+        container["primary"].metadata,
+        data=container["primary/internal/events"].read(),
+        energy_config=None,
+        strict=False,
     )
     return xdi_text
 
@@ -115,9 +131,18 @@ def test_optional_headers(xdi_text):
         "Scan.start_time": "2022-10-06 09:14:57-0500",
         "uid": "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f",
     }
-    print(xdi_text)
     for key, val in expected_metadata.items():
         assert f"# {key.lower()}: {val.lower()}\n" in xdi_text.lower()
+
+
+def test_tsv_headers(tsv_text):
+    """Do we still get a valid TSV file without any metadata."""
+    assert "# energy\tIt-net_current" in tsv_text
+    assert "d_spacing" not in tsv_text
+    # Check the data
+    buff = io.StringIO(tsv_text)
+    df = pd.read_csv(buff, comment="#", sep="\t")
+    assert len(df.columns) == 2
 
 
 def test_data(xdi_text):

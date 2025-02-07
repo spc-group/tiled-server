@@ -15,34 +15,37 @@ log = logging.getLogger(__name__)
 
 
 def headers(
-    metadata: Mapping[str, Mapping], data_keys: Mapping[str, Mapping], d_spacing: str
+        metadata: Mapping[str, Mapping], data_keys: Mapping[str, Mapping], d_spacing: str | None, *,
+        strict: bool
 ):
     """Generate individual header lines for the XDI file."""
-    # Version information
-    versions = ["XDI/1.0"]
     start_doc = metadata.get("start", {})
-    version_md = start_doc.get("versions", {})
-    versions += [f"{name}/{ver}" for name, ver in version_md.items()]
-    # fd.write(f"# {' '.join(versions)}\n")
-    yield f"# {' '.join(versions)}"
+    # Version information
+    if strict:
+        versions = ["XDI/1.0"]
+        version_md = start_doc.get("versions", {})
+        versions += [f"{name}/{ver}" for name, ver in version_md.items()]
+        yield f"# {' '.join(versions)}"
     # Column Names
     for num, (key, info) in enumerate(data_keys.items()):
         yield f"# Column.{num+1}: {key} {info.get('units', '')}"
     # X-ray edge information
-    edge_str = start_doc.get("edge", None)
-    try:
+    if "edge" in start_doc or strict:
+        edge_str = start_doc["edge"]
         elem, edge = edge_str.split("_")
-    except (AttributeError, ValueError):
-        msg = f"Could not parse X-ray edge metadata: {edge_str}"
-        log.debug(msg)
-    else:
         yield f"# Element.symbol: {elem}"
         yield f"# Element.edge: {edge}"
-    yield f"# Mono.d_spacing: {d_spacing}"
+    # Instrument metadata
+    if d_spacing is None and strict:
+        raise ValueError("Argument *d_spacing* cannot be none with strict XDI formatting.")
+    elif d_spacing not in [None, "None"]:
+        print(f"Yielding d_spacing: {d_spacing} {type(d_spacing)}")
+        yield f"# Mono.d_spacing: {d_spacing}"
     # Facility information
-    start_time = dt.datetime.fromtimestamp(start_doc["time"], dt.timezone.utc)
-    start_time = start_time.astimezone()
-    yield f"# Scan.start_time: {start_time.strftime('%Y-%m-%d %H:%M:%S%z')}"
+    if "time" in start_doc or strict:
+        start_time = dt.datetime.fromtimestamp(start_doc["time"], dt.timezone.utc)
+        start_time = start_time.astimezone()
+        yield f"# Scan.start_time: {start_time.strftime('%Y-%m-%d %H:%M:%S%z')}"
     md_mappings = [
         # metadata key, XDI key
         ("facility_id", "Facility.name"),
@@ -53,7 +56,8 @@ def headers(
     for md_key, xdi_key in md_mappings:
         yield f"# {xdi_key}: {start_doc[md_key]}"
     # Header end token
-    yield "# -------------"
+    if strict:
+        yield "# -------------"
 
 
 def data_keys(metadata: Mapping[str, Mapping | str | float | int]):
@@ -100,12 +104,26 @@ def build_xdi(
     stream_metadata: dict[str, Any],
     data: DataFrame,
     energy_config: DataFrame,
+    *,
+    strict: bool,
 ) -> IO[bytes]:
+    """Build an XDI string based on data and metadata.
+
+    Parameters
+    ==========
+    strict
+      If true, raise an exception if required metadata keys are not
+      found. Otherwise, missing keys are omitted from the header.
+
+    """
     data_keys_ = data_keys(stream_metadata)
-    d_spacing = energy_config["energy-monochromator-d_spacing"].values[0]
+    try:
+        d_spacing = energy_config["energy-monochromator-d_spacing"].values[0]
+    except TypeError:
+        d_spacing = None
     # Write headers
     xdi_text = ""
-    hdrs = headers(metadata, data_keys=data_keys_, d_spacing=f"{d_spacing}")
+    hdrs = headers(metadata, data_keys=data_keys_, d_spacing=f"{d_spacing}", strict=strict)
     xdi_text += "\n".join(hdrs) + "\n"
     # Write data
     xdi_text += f"# {'\t'.join(data_keys_.keys())}\n"
@@ -114,6 +132,29 @@ def build_xdi(
     buffer.seek(0)
     xdi_text += buffer.read()
     return xdi_text
+
+
+async def serialize_tsv(node, metadata, filter_for_access):
+    """Write a bluesky run as tab-separated values.
+
+    Assumes that *node* is a BlueskyRun.
+
+    Includes some headers, though nothing is required."
+
+    """
+    stream_node, data_node, config_node = await load_datasets(node)
+    # Get extra data
+    data, energy_config = await asyncio.gather(
+        data_node.read(),
+        config_node.read(),
+    )
+    xdi_text = build_xdi(
+        metadata=metadata,
+        stream_metadata=stream_node.metadata(),
+        data=data,
+        energy_config=energy_config,
+    )
+    return xdi_text.encode("utf-8")
 
 
 async def serialize_xdi(node, metadata, filter_for_access):
