@@ -3,8 +3,10 @@ import io
 
 import h5py
 import pytest
+import pytest_asyncio
+from tiled.catalog.adapter import CatalogContainerAdapter
 
-from tiledspc.serialization.container import serialize_nexus
+from tiledspc.serialization.nexus import serialize_nexus, NexusFile
 
 # <BlueskyRun({'primary'})>
 metadata = {
@@ -79,30 +81,36 @@ metadata = {
 }
 
 
+
+@pytest_asyncio.fixture()
+async def nxfile(xafs_run):
+    # Generate the headers
+    buff = bytes(await serialize_nexus(xafs_run, metadata=metadata, filter_for_access=None))
+    buff = io.BytesIO(buff)
+    with h5py.File(buff, mode="r") as fd:
+        # Write data entry to the nexus file
+        yield fd
+
+
 @pytest.mark.asyncio
-async def test_file_structure(tiled_client):
+async def test_file_structure(nxfile):
     uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
-    container = tiled_client[uid]
-    # Perform the serialization
-    buff = await serialize_nexus(container, metadata, filter_for_access=None)
-    buff = io.BytesIO(buff.tobytes())
-    with h5py.File(buff) as fp:
-        # Check the top-level entry
-        assert fp.attrs["default"] == uid
-        assert uid in fp.keys()
-        entry = fp[uid]
-        assert entry.attrs["NX_class"] == "NXentry"
-        assert entry.attrs["default"] == "primary"
-        # Check the default data group
-        assert "primary" in entry.keys()
-        primary = entry["primary"]
-        assert primary.attrs["NX_class"] == "NXdata"
-        # assert primary.attrs["signal"] == ""
-        # assert primary.attrs["axes"] == ""
-        # Check some of the run columns
-        assert "energy_energy" in primary.keys()
-        assert primary["energy_energy"].shape == (100,)
-        assert "It_net_counts" in primary.keys()
-        assert "I0_net_counts" in primary.keys()
-        assert primary["energy_energy"].attrs["NX_class"] == "NXdata"
-        # assert False, primary['energy_energy']
+    # Check the top-level entry
+    assert nxfile.attrs["default"] == uid
+    assert uid in nxfile.keys()
+    entry = nxfile[uid]
+    assert entry.attrs["NX_class"] == "NXentry"
+    assert entry.attrs["default"] == "primary"
+    # Check the default data group
+    assert "primary" in entry.keys()
+    primary = entry["primary"]
+    assert primary.attrs["NX_class"] == "NXdata"
+    # assert primary.attrs["signal"] == ""
+    # assert primary.attrs["axes"] == "energy"
+    # Check some of the run columns
+    assert "energy" in primary.keys()
+    assert primary["energy"].shape == (100,)
+    assert "It-net_current" in primary.keys()
+    assert "I0-net_current" in primary.keys()
+    assert primary["energy"].attrs["NX_class"] == "NXdata"
+    # assert False, primary['energy_energy']

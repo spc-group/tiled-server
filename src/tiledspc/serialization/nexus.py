@@ -3,6 +3,7 @@ import logging
 from typing import Mapping
 
 import h5py
+from tiled.catalog.adapter import CatalogContainerAdapter
 from tiled.utils import (
     ensure_awaitable,
 )
@@ -10,12 +11,20 @@ from tiled.utils import (
 log = logging.getLogger(__name__)
 
 
+async def asdict(node):
+    """Convert a catalog node to a dictionary."""
+    return {key: val for key, val in await node.items_range(0, None)}
+
+
 class NexusFile(h5py.File):
     def __init__(self, *args, filter_for_access, **kwargs):
         self.filter_for_access = filter_for_access
         super().__init__(*args, **kwargs)
 
-    async def write_run(self, name, node, metadata: Mapping = {}):
+    async def write_baseline(self, *args, **kwargs):
+        return
+
+    async def write_run(self, node: CatalogContainerAdapter, metadata: Mapping[str, Mapping | float | str | int]):
         """Write a run to the HDF file as a nexus-compatiable entry.
 
         *node* should be the container for this run. E.g.
@@ -31,20 +40,27 @@ class NexusFile(h5py.File):
           The HDF5 :NXentry group used to hold this run's data.
 
         """
+        name = metadata['start']['uid']
         self.attrs["NX_class"] = "NXroot"
         self.attrs["default"] = name
         # Create NXentry
         entry = self.create_group(f"{name}")
         entry.attrs["NX_class"] = "NXentry"
         # Write individual streams
-        stream_names = metadata["summary"]["stream_names"]
-        for stream_name in stream_names:
-            await self.write_stream(
-                name=stream_name,
-                node=node[stream_name],
-                parent=entry,
-                metadata=metadata,
-            )
+        stream_names = []
+        for stream_name, stream_node in await node.items_range(0, None):
+            if stream_name == "baseline":
+                await self.write_baseline(
+                    stream_node
+                )
+            else:
+                stream_names.append(stream_name)
+                await self.write_stream(
+                    name=stream_name,
+                    node=stream_node,
+                    parent=entry,
+                    metadata=metadata,
+                )
         default_stream = "primary" if "primary" in stream_names else stream_names[0]
         entry.attrs["default"] = default_stream
         # Write attributes
@@ -79,21 +95,15 @@ class NexusFile(h5py.File):
         data_group = parent.create_group(name)
         data_group.attrs["NX_class"] = "NXdata"
         # Make sure we have access to these data
-        data = node["data"]
-        if self.filter_for_access is not None:
-            data = self.filter_for_access(data)
+        from pprint import pprint
+        containers = await asdict(node)
+        internal = await asdict(containers['internal'])
+        events = await internal['events'].read()
         # Add individual data columns
-        for key, child in data.items():
-            arr = await ensure_awaitable(child.read)
-            # For some reason these have an extra dimension, so get rid of it
-            arr = arr[0]
+        for col_name, series in events.items():
+            arr = series.values
             # Create the data set for the new data column
-            try:
-                ds = data_group.create_dataset(key, data=arr)
-            except TypeError as exc:
-                log.exception(exc)
-                log.error(f"Could not create dataset for {type(child)} '{key}'.")
-                continue
+            ds = data_group.create_dataset(col_name, data=arr)
             ds.attrs["NX_class"] = "NXdata"
         return data_group
 
@@ -112,6 +122,6 @@ async def serialize_nexus(node, metadata, filter_for_access):
     with NexusFile(buffer, mode="w", filter_for_access=filter_for_access) as fp:
         # Write data entry to the nexus file
         await fp.write_run(
-            name=metadata["summary"]["uid"], node=node, metadata=metadata
+            node=node, metadata=metadata
         )
     return buffer.getbuffer()

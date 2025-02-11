@@ -3,8 +3,9 @@ import io
 
 import pandas as pd
 import pytest
+import pytest_asyncio
 
-from tiledspc.serialization.tsv import build_xdi
+from tiledspc.serialization.tsv import build_xdi, serialize_xdi, serialize_tsv
 
 # <BlueskyRun({'primary'})>
 metadata = {
@@ -82,38 +83,29 @@ metadata = {
 }
 
 
-@pytest.fixture()
-def xdi_text(tiled_client):
-    uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
-    container = tiled_client[uid]
+@pytest_asyncio.fixture()
+async def xdi_text(xafs_run):
     # Generate the headers
-    xdi_text = build_xdi(
-        metadata,
-        container["primary"].metadata,
-        data=container["primary/internal/events"].read(),
-        energy_config=container["primary/config/energy"].read(),
-        strict=True,
+    xdi_text = await serialize_xdi(
+        node=xafs_run,
+        metadata=metadata,
+        filter_for_access=None,
     )
-    return xdi_text
+    return xdi_text.decode("utf-8")
 
 
-@pytest.fixture()
-def tsv_text(tiled_client):
-    uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
-    container = tiled_client[uid]
+@pytest_asyncio.fixture()
+async def tsv_text(xafs_run):
     # Generate the headers
-    xdi_text = build_xdi(
-        {},
-        container["primary"].metadata,
-        data=container["primary/internal/events"].read(),
-        energy_config=None,
-        strict=False,
+    tsv_text = await serialize_tsv(
+        node=xafs_run,
+        metadata=metadata,
+        filter_for_access=None,
     )
-    return xdi_text
+    return tsv_text.decode("utf-8")
 
 
 def test_required_headers(xdi_text):
-    print(xdi_text)
     assert "# XDI/1.0 bluesky/1.9.0 ophyd/1.7.0" in xdi_text
     assert "# Column.1: energy eV" in xdi_text
     assert "# Column.2: It-net_current A" in xdi_text

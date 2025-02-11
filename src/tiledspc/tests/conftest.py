@@ -3,18 +3,28 @@ import pandas as pd
 import pytest
 from tiled.adapters.mapping import MapAdapter
 from tiled.adapters.table import TableAdapter
+from tiled.catalog.adapter import CatalogContainerAdapter
+from tiled.catalog import in_memory
 from tiled.client import Context, from_context
 from tiled.server.app import build_app
 
 # Tiled data to use for testing
 # Some mocked test data
-run1 = pd.DataFrame(
+xafs_events = pd.DataFrame(
     {
         "energy": np.linspace(8300, 8400, num=100),
         "It-net_current": np.abs(np.sin(np.linspace(0, 4 * np.pi, num=100))),
         "I0-net_current": np.linspace(1, 2, num=100),
     }
 )
+
+xafs_config = {
+    "energy": pd.DataFrame(
+        {
+            "energy-monochromator-d_spacing": [3.13],
+        }
+    )
+}
 
 grid_scan = pd.DataFrame(
     {
@@ -132,56 +142,56 @@ hints = {
 }
 
 bluesky_mapping = {
-    "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f": MapAdapter(
-        {
-            "primary": MapAdapter(
-                {
-                    "internal": MapAdapter({"events": TableAdapter.from_pandas(run1)}),
-                    "config": MapAdapter(
-                        {
-                            "energy": TableAdapter.from_pandas(
-                                pd.DataFrame(
-                                    {
-                                        "energy-monochromator-d_spacing": [3.13],
-                                    }
-                                )
-                            ),
-                        }
-                    ),
-                },
-                metadata={"hints": hints, "data_keys": data_keys},
-            ),
-        },
-        metadata={
-            "plan_name": "xafs_scan",
-            "start": {
-                "plan_name": "xafs_scan",
-                "uid": "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f",
-                "hints": {"dimensions": [[["energy"], "primary"]]},
-            },
-        },
-    ),
-    "9d33bf66-9701-4ee3-90f4-3be730bc226c": MapAdapter(
-        {
-            "primary": MapAdapter(
-                {
-                    "internal": MapAdapter(
-                        {
-                            "events": TableAdapter.from_pandas(run1),
-                        }
-                    ),
-                },
-                metadata={"hints": hints},
-            ),
-        },
-        metadata={
-            "start": {
-                "plan_name": "rel_scan",
-                "uid": "9d33bf66-9701-4ee3-90f4-3be730bc226c",
-                "hints": {"dimensions": [[["pitch2"], "primary"]]},
-            }
-        },
-    ),
+    # "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f": MapAdapter(
+    #     {
+    #         "primary": MapAdapter(
+    #             {
+    #                 "internal": MapAdapter({"events": TableAdapter.from_pandas(run1)}),
+    #                 "config": MapAdapter(
+    #                     {
+    #                         "energy": TableAdapter.from_pandas(
+    #                             pd.DataFrame(
+    #                                 {
+    #                                     "energy-monochromator-d_spacing": [3.13],
+    #                                 }
+    #                             )
+    #                         ),
+    #                     }
+    #                 ),
+    #             },
+    #             metadata={"hints": hints, "data_keys": data_keys},
+    #         ),
+    #     },
+    #     metadata={
+    #         "plan_name": "xafs_scan",
+    #         "start": {
+    #             "plan_name": "xafs_scan",
+    #             "uid": "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f",
+    #             "hints": {"dimensions": [[["energy"], "primary"]]},
+    #         },
+    #     },
+    # ),
+    # "9d33bf66-9701-4ee3-90f4-3be730bc226c": MapAdapter(
+    #     {
+    #         "primary": MapAdapter(
+    #             {
+    #                 "internal": MapAdapter(
+    #                     {
+    #                         "events": TableAdapter.from_pandas(run1),
+    #                     }
+    #                 ),
+    #             },
+    #             metadata={"hints": hints},
+    #         ),
+    #     },
+    #     metadata={
+    #         "start": {
+    #             "plan_name": "rel_scan",
+    #             "uid": "9d33bf66-9701-4ee3-90f4-3be730bc226c",
+    #             "hints": {"dimensions": [[["pitch2"], "primary"]]},
+    #         }
+    #     },
+    # ),
     # 2D grid scan map data
     "85573831-f4b4-4f64-b613-a6007bf03a8d": MapAdapter(
         {
@@ -244,3 +254,22 @@ def tiled_client():
     with Context.from_app(app) as context:
         client = from_context(context)
         yield client["255id_testing"]
+
+
+@pytest.fixture
+def tree(tmpdir):
+    return in_memory(writable_storage=tmpdir)
+
+
+@pytest.fixture()
+def xafs_run(tree):
+    with Context.from_app(build_app(tree)) as context:
+        client = from_context(context)
+        # Write sample data
+        primary = client.create_container("primary", metadata={"hints": hints, "data_keys": data_keys})
+        internal = primary.create_container("internal")
+        internal.write_dataframe(xafs_events, key="events")
+        config = primary.create_container("config")
+        for key, cfg in xafs_config.items():
+            config.write_dataframe(cfg, key=key)
+        yield tree
