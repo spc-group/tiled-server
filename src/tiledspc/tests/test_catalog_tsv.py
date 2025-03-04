@@ -4,7 +4,7 @@ import io
 import pandas as pd
 import pytest
 
-from tiledspc.serialization.tsv import build_xdi
+from tiledspc.serialization.tsv import build_xdi, headers
 
 # <BlueskyRun({'primary'})>
 metadata = {
@@ -113,7 +113,6 @@ def tsv_text(tiled_client):
 
 
 def test_required_headers(xdi_text):
-    print(xdi_text)
     assert "# XDI/1.0 bluesky/1.9.0 ophyd/1.7.0" in xdi_text
     assert "# Column.1: energy eV" in xdi_text
     assert "# Column.2: It-net_current A" in xdi_text
@@ -143,6 +142,22 @@ def test_tsv_headers(tsv_text):
     buff = io.StringIO(tsv_text)
     df = pd.read_csv(buff, comment="#", sep="\t")
     assert len(df.columns) == 2
+
+
+def test_missing_edge(tsv_text):
+    """Can we export with missing edge information."""
+    hdrs = list(
+        headers(
+            metadata={
+                "start": {
+                    "edge": None,
+                }
+            },
+            data_keys={},
+            d_spacing=None,
+            strict=False,
+        )
+    )
 
 
 def test_data(xdi_text):
