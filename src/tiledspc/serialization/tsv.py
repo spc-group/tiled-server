@@ -34,18 +34,20 @@ def headers(
     for num, (key, info) in enumerate(data_keys.items()):
         yield f"# Column.{num+1}: {key} {info.get('units', '')}"
     # X-ray edge information
-    if "edge" in start_doc or strict:
-        try:
-            edge_str = start_doc["edge"]
-            elem, edge = edge_str.split("_")
-        except KeyError:
+    try:
+        edge_str = start_doc["edge"]
+        elem, edge = edge_str.split("_")
+    except (KeyError, AttributeError):
+        if strict:
             raise SerializationError(
                 "Metadata *edge* is required with strict XDI formatting."
             )
-        except ValueError:
+    except ValueError:
+        if strict:
             raise SerializationError(
                 f"Metadata *edge* '{edge_str}' not in expected format."
             )
+    else:
         yield f"# Element.symbol: {elem}"
         yield f"# Element.edge: {edge}"
     # Instrument metadata
