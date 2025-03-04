@@ -74,7 +74,7 @@ def headers(
         yield "# -------------"
 
 
-def data_keys(metadata: Mapping[str, Mapping | str | float | int]):
+def data_keys(metadata: Mapping[str, Mapping | str | float | int]) -> dict[str, dict]:
     """Prepare valid hinted data keys for a stream.
 
     *metadata* should be the metadata dictionary for a specific stream.
@@ -84,6 +84,8 @@ def data_keys(metadata: Mapping[str, Mapping | str | float | int]):
     hints = metadata["hints"]
     hints = [hint for dev_hints in hints.values() for hint in dev_hints["fields"]]
     dkeys = {key: desc for key, desc in dkeys.items() if key in hints}
+    # Remove external datasets that won't be in the internal dataframe
+    dkeys = {key: desc for key, desc in dkeys.items() if "external" not in desc}
     return dkeys
 
 
