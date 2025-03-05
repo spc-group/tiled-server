@@ -1,12 +1,17 @@
+import json
+import datetime as dt
 import io
 import logging
-from typing import Mapping
+from typing import Mapping, IO
 
+import numpy as np
 import h5py
 from tiled.catalog.adapter import CatalogContainerAdapter
 from tiled.utils import (
     ensure_awaitable,
 )
+from nexusformat.nexus import nxopen, NXFile
+from nexusformat.nexus.tree import NXentry, NXinstrument, NXnote, NXdata, NXfield, NXroot
 
 log = logging.getLogger(__name__)
 
@@ -16,96 +21,156 @@ async def asdict(node):
     return {key: val for key, val in await node.items_range(0, None)}
 
 
-class NexusFile(h5py.File):
-    def __init__(self, *args, filter_for_access, **kwargs):
-        self.filter_for_access = filter_for_access
-        super().__init__(*args, **kwargs)
+class NexusIO(NXFile):
+    def __init__(self, bytesio: IO[bytes], mode: str='r', **kwargs):
+        self.h5 = h5py
+        self.name = ""
+        self._file = None
+        self._filename = "/dev/null"
+        self._filedir = "/tmp"
+        self._lock = None
+        self._lockdir = None
+        self._path = '/'
+        self._root = None
+        self._with_count = 0
+        self.recursive = True
 
-    async def write_baseline(self, *args, **kwargs):
-        return
+        self._file = self.h5.File(bytesio, mode, **kwargs)
 
-    async def write_run(self, node: CatalogContainerAdapter, metadata: Mapping[str, Mapping | float | str | int]):
-        """Write a run to the HDF file as a nexus-compatiable entry.
+        if mode == 'r':
+            self._mode = 'r'
+        else:
+            self._mode = 'rw'
 
-        *node* should be the container for this run. E.g.
+    def acquire_lock(self, timeout=None):
+        pass
 
-        .. code-block:: python
+    def release_lock(self, timeout=None):
+        pass
 
-            uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
-            write_stream(name=uid, node=client[uid])
+    def open(self, **kw):
+        pass
 
-        Returns
-        =======
-        grp
-          The HDF5 :NXentry group used to hold this run's data.
 
-        """
-        name = metadata['start']['uid']
-        self.attrs["NX_class"] = "NXroot"
-        self.attrs["default"] = name
-        # Create NXentry
-        entry = self.create_group(f"{name}")
-        entry.attrs["NX_class"] = "NXentry"
-        # Write individual streams
-        stream_names = []
-        for stream_name, stream_node in await node.items_range(0, None):
-            if stream_name == "baseline":
-                await self.write_baseline(
-                    stream_node
-                )
-            else:
-                stream_names.append(stream_name)
-                await self.write_stream(
-                    name=stream_name,
-                    node=stream_node,
-                    parent=entry,
-                    metadata=metadata,
-                )
-        default_stream = "primary" if "primary" in stream_names else stream_names[0]
-        entry.attrs["default"] = default_stream
-        # Write attributes
-        return entry
+async def write_run(nxfile: NexusIO, node: CatalogContainerAdapter, metadata: Mapping[str, Mapping | float | str | int]) -> NXroot:
+    """Write a run to the HDF file as a nexus-compatiable entry.
 
-    async def write_stream(self, name, node, parent, metadata: Mapping = {}):
-        """Write a stream to the HDF file as a nexus-compatiable entry.
+    *node* should be the container for this run. E.g.
 
-        *node* should be the container for this stream. E.g.
+    .. code-block:: python
 
-        .. code-block:: python
+        uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
+        write_stream(name=uid, node=client[uid])
 
-            write_stream(name="primary", node=run["primary"])
+    Returns
+    =======
+    root
+      The HDF5 :NXentry group used to hold this run's data.
 
-        Parameters
-        ==========
-        name
-          The name for the new HDF5 NXdata group.
-        node
-          The tiled container for this stream.
-        parent
-          The HDF5 group/file to add this stream's group to.
-        metatata
-          The Bluesky metadata for this run.
+    """
+    name = metadata['start']['uid']
+    root = nxfile.readfile()
+    root.attrs['default'] = name
+    nxentry = NXentry()
+    root[name] = nxentry
+    # Create bluesky groups
+    nxentry["instrument"] = NXinstrument()
+    nxentry['instrument/bluesky'] = NXnote()
+    bluesky_group = nxentry['instrument/bluesky']
+    bluesky_group["streams"] = NXnote()
+    # Write stream data
+    await write_metadata(metadata, nxentry=nxentry)
+    for stream_name, stream_node in await node.items_range(0, None):
+        await write_stream(
+            name=stream_name,
+            node=stream_node,
+            nxentry=nxentry,
+            metadata=stream_node.metadata(),
+        )
+    # Write attributes
+    return root
 
-        Returns
-        =======
-        grp
-          The HDF5 group used to hold this stream's data.
 
-        """
-        data_group = parent.create_group(name)
-        data_group.attrs["NX_class"] = "NXdata"
-        # Make sure we have access to these data
-        from pprint import pprint
-        containers = await asdict(node)
-        internal = await asdict(containers['internal'])
-        events = await internal['events'].read()
-        # Add individual data columns
-        for col_name, series in events.items():
-            arr = series.values
-            # Create the data set for the new data column
-            ds = data_group.create_dataset(col_name, data=arr)
-            ds.attrs["NX_class"] = "NXdata"
-        return data_group
+def to_hdf_type(value):
+    """Some objects cannot be stored as HDF5 types.
+
+    For example, a datetime should be converted to a string.
+
+    Complex structures, like dictionaries, are converted to JSON.
+
+    """
+    type_conversions = [
+        # (old => new)
+        (dt.datetime, str),
+        (Mapping, json.dumps),
+    ]
+    new_types = [new for old, new in type_conversions if isinstance(value, old)]
+    new_type = [*new_types, lambda x: x][0]
+    return new_type(value)
+
+
+async def write_metadata(metadata: dict[str], nxentry: NXentry):
+    """Write run-level metadata to the Nexus file."""
+    md_group = NXnote()
+    nxentry['instrument/bluesky/metadata'] = md_group
+    flattened = {f"{doc_name}.{key}": value for doc_name, doc in metadata.items() for key, value in doc.items()}
+    for key, value in flattened.items():
+        value = to_hdf_type(value)
+        md_group[key] = NXfield(value)
+
+
+async def write_stream(name: str, node, nxentry: NXentry, metadata: Mapping[str, dict] = {}):
+    """Write a stream to the HDF file as a nexus-compatiable entry.
+
+    *node* should be the container for this stream. E.g.
+
+    .. code-block:: python
+
+        write_stream(name="primary", node=run["primary"])
+
+    Parameters
+    ==========
+    name
+      The name for the new HDF5 NXdata group.
+    node
+      The tiled container for this stream.
+    parent
+      The HDF5 group/file to add this stream's group to.
+    metadata
+      Descriptions of the individual datasets to create and hint.
+
+    Returns
+    =======
+    grp
+      The HDF5 group used to hold this stream's data.
+
+    """
+    stream_group = NXnote()
+    nxentry[f"instrument/bluesky/streams/{name}"] = stream_group
+    # Make sure we have access to these data
+    containers = await asdict(node)
+    internal = await asdict(containers['internal'])
+    events = await internal['events'].read()
+    external = await asdict(containers['external'])
+    # Add individual data columns
+    for col_name, desc in metadata['data_keys'].items():
+        nxdata = NXdata()
+        stream_group[col_name] = nxdata
+        if "external" in desc:
+            # Load and save external dataset from disk
+            data = await external[col_name].read()
+            nxdata['value'] = NXfield(data)
+        else:
+            # Save interal dataset
+            nxdata["value"] = NXfield(events[col_name].values)
+            nxdata['value'].attrs['units'] = desc['units']
+            times = events[f"ts_{col_name}"].values
+            nxdata["EPOCH"] = NXfield(times)
+            nxdata["time"] = times - np.min(times)
+            nxdata['time'].attrs['units'] = 's'
+            nxdata.attrs['signal'] = "value"
+            nxdata.attrs['axes'] = "time"
+    return stream_group
 
 
 async def serialize_nexus(node, metadata, filter_for_access):
@@ -116,12 +181,17 @@ async def serialize_nexus(node, metadata, filter_for_access):
     Follows the NeXuS XAS spectroscopy definition."
 
     """
-    buffer = io.BytesIO()
+    buff = io.BytesIO()
     root_node = node
     # MSG = "Metadata contains types or structure that does not fit into HDF5."
-    with NexusFile(buffer, mode="w", filter_for_access=filter_for_access) as fp:
+    
+    with NexusIO(buff, mode='w') as nxfile:
         # Write data entry to the nexus file
-        await fp.write_run(
-            node=node, metadata=metadata
+        tree = await write_run(
+            nxfile=nxfile,
+            node=node,
+            metadata=metadata
         )
-    return buffer.getbuffer()
+        nxfile.writefile(tree)
+        nxfile.close()
+    return buff.getbuffer()

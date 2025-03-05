@@ -13,8 +13,11 @@ from tiled.server.app import build_app
 xafs_events = pd.DataFrame(
     {
         "energy": np.linspace(8300, 8400, num=100),
+        "ts_energy": np.linspace(0, 15, num=100),
         "It-net_current": np.abs(np.sin(np.linspace(0, 4 * np.pi, num=100))),
+        "ts_It-net_current": np.linspace(0, 15, num=100),
         "I0-net_current": np.linspace(1, 2, num=100),
+        "ts_I0-net_current": np.linspace(0, 15, num=100),
     }
 )
 
@@ -49,45 +52,45 @@ data_keys = {
         "source": "ca://25idcVME:3820:scaler1.T",
         "units": "eV",
     },
-    "I0-mcs-scaler-channels-0-net_count": {
-        "dtype": "number",
-        "dtype_numpy": "<f8",
-        "limits": {
-            "control": {"high": 0.0, "low": 0.0},
-            "display": {"high": 0.0, "low": 0.0},
-        },
-        "object_name": "I0",
-        "precision": 0,
-        "shape": [],
-        "source": "ca://25idcVME:3820:scaler1_netA.A",
-        "units": "",
-    },
-    "I0-mcs-scaler-channels-3-net_count": {
-        "dtype": "number",
-        "dtype_numpy": "<f8",
-        "limits": {
-            "control": {"high": 0.0, "low": 0.0},
-            "display": {"high": 0.0, "low": 0.0},
-        },
-        "object_name": "I0",
-        "precision": 0,
-        "shape": [],
-        "source": "ca://25idcVME:3820:scaler1_netA.D",
-        "units": "",
-    },
-    "I0-mcs-scaler-elapsed_time": {
-        "dtype": "number",
-        "dtype_numpy": "<f8",
-        "limits": {
-            "control": {"high": 0.0, "low": 0.0},
-            "display": {"high": 0.0, "low": 0.0},
-        },
-        "object_name": "I0",
-        "precision": 3,
-        "shape": [],
-        "source": "ca://25idcVME:3820:scaler1.T",
-        "units": "",
-    },
+    # "I0-mcs-scaler-channels-0-net_count": {
+    #     "dtype": "number",
+    #     "dtype_numpy": "<f8",
+    #     "limits": {
+    #         "control": {"high": 0.0, "low": 0.0},
+    #         "display": {"high": 0.0, "low": 0.0},
+    #     },
+    #     "object_name": "I0",
+    #     "precision": 0,
+    #     "shape": [],
+    #     "source": "ca://25idcVME:3820:scaler1_netA.A",
+    #     "units": "",
+    # },
+    # "I0-mcs-scaler-channels-3-net_count": {
+    #     "dtype": "number",
+    #     "dtype_numpy": "<f8",
+    #     "limits": {
+    #         "control": {"high": 0.0, "low": 0.0},
+    #         "display": {"high": 0.0, "low": 0.0},
+    #     },
+    #     "object_name": "I0",
+    #     "precision": 0,
+    #     "shape": [],
+    #     "source": "ca://25idcVME:3820:scaler1_netA.D",
+    #     "units": "",
+    # },
+    # "I0-mcs-scaler-elapsed_time": {
+    #     "dtype": "number",
+    #     "dtype_numpy": "<f8",
+    #     "limits": {
+    #         "control": {"high": 0.0, "low": 0.0},
+    #         "display": {"high": 0.0, "low": 0.0},
+    #     },
+    #     "object_name": "I0",
+    #     "precision": 3,
+    #     "shape": [],
+    #     "source": "ca://25idcVME:3820:scaler1.T",
+    #     "units": "",
+    # },
     "I0-net_current": {
         "dtype": "number",
         "dtype_numpy": "<f8",
@@ -120,19 +123,19 @@ data_keys = {
         "shape": [],
         "source": "ca://XSP_Ge_8elem:HDF1:FullFileName_RBV",
     },
-    "sim_motor_2": {
-        "dtype": "number",
-        "dtype_numpy": "<f8",
-        "limits": {
-            "control": {"high": 32000.0, "low": -32000.0},
-            "display": {"high": 32000.0, "low": -32000.0},
-        },
-        "object_name": "sim_motor_2",
-        "precision": 5,
-        "shape": [],
-        "source": "ca://25idc:simMotor:m2.RBV",
-        "units": "degrees",
-    },
+    # "sim_motor_2": {
+    #     "dtype": "number",
+    #     "dtype_numpy": "<f8",
+    #     "limits": {
+    #         "control": {"high": 32000.0, "low": -32000.0},
+    #         "display": {"high": 32000.0, "low": -32000.0},
+    #     },
+    #     "object_name": "sim_motor_2",
+    #     "precision": 5,
+    #     "shape": [],
+    #     "source": "ca://25idc:simMotor:m2.RBV",
+    #     "units": "degrees",
+    # },
 }
 
 
@@ -258,7 +261,7 @@ def tiled_client():
 
 @pytest.fixture
 def tree(tmpdir):
-    return in_memory(writable_storage=tmpdir)
+    return in_memory(writable_storage=str(tmpdir))
 
 
 @pytest.fixture()
@@ -269,6 +272,10 @@ def xafs_run(tree):
         primary = client.create_container("primary", metadata={"hints": hints, "data_keys": data_keys})
         internal = primary.create_container("internal")
         internal.write_dataframe(xafs_events, key="events")
+        # Fluorescence detector data
+        external = primary.create_container("external")
+        external.write_array(np.zeros(shape=(100, 8, 4096)), key="ge_8element")
+        external.write_array(np.ones(shape=(100,)), key="ge_8element-element0-all_event")
         config = primary.create_container("config")
         for key, cfg in xafs_config.items():
             config.write_dataframe(cfg, key=key)
