@@ -142,6 +142,7 @@ data_keys = {
 hints = {
     "energy": {"fields": ["energy", "energy_id_energy_readback"]},
     "It": {"fields": ["It-net_current"]},
+    "ge_8element": {"fields": ["ge_8element"]},
 }
 
 bluesky_mapping = {

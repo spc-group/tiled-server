@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 import pytest_asyncio
 
-from tiledspc.serialization.tsv import build_xdi, serialize_xdi, serialize_tsv
+from tiledspc.serialization.tsv import build_xdi, headers, serialize_xdi, serialize_tsv
 
 # <BlueskyRun({'primary'})>
 metadata = {
@@ -135,6 +135,22 @@ def test_tsv_headers(tsv_text):
     buff = io.StringIO(tsv_text)
     df = pd.read_csv(buff, comment="#", sep="\t")
     assert len(df.columns) == 2
+
+
+def test_missing_edge(tsv_text):
+    """Can we export with missing edge information."""
+    hdrs = list(
+        headers(
+            metadata={
+                "start": {
+                    "edge": None,
+                }
+            },
+            data_keys={},
+            d_spacing=None,
+            strict=False,
+        )
+    )
 
 
 def test_data(xdi_text):

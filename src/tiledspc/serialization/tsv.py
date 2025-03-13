@@ -34,18 +34,20 @@ def headers(
     for num, (key, info) in enumerate(data_keys.items()):
         yield f"# Column.{num+1}: {key} {info.get('units', '')}"
     # X-ray edge information
-    if "edge" in start_doc or strict:
-        try:
-            edge_str = start_doc["edge"]
-            elem, edge = edge_str.split("_")
-        except KeyError:
+    try:
+        edge_str = start_doc["edge"]
+        elem, edge = edge_str.split("_")
+    except (KeyError, AttributeError):
+        if strict:
             raise SerializationError(
                 "Metadata *edge* is required with strict XDI formatting."
             )
-        except ValueError:
+    except ValueError:
+        if strict:
             raise SerializationError(
                 f"Metadata *edge* '{edge_str}' not in expected format."
             )
+    else:
         yield f"# Element.symbol: {elem}"
         yield f"# Element.edge: {edge}"
     # Instrument metadata
@@ -74,7 +76,7 @@ def headers(
         yield "# -------------"
 
 
-def data_keys(metadata: Mapping[str, Mapping | str | float | int]):
+def data_keys(metadata: Mapping[str, Mapping | str | float | int]) -> dict[str, dict]:
     """Prepare valid hinted data keys for a stream.
 
     *metadata* should be the metadata dictionary for a specific stream.
@@ -84,6 +86,8 @@ def data_keys(metadata: Mapping[str, Mapping | str | float | int]):
     hints = metadata["hints"]
     hints = [hint for dev_hints in hints.values() for hint in dev_hints["fields"]]
     dkeys = {key: desc for key, desc in dkeys.items() if key in hints}
+    # Remove external datasets that won't be in the internal dataframe
+    dkeys = {key: desc for key, desc in dkeys.items() if "external" not in desc}
     return dkeys
 
 
