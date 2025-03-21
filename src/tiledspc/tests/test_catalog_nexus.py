@@ -13,32 +13,15 @@ specification = """
 root:NXroot
   @default = '7d1daf1d-60c7-4aa7-a668-d1cd97e5335f'
   7d1daf1d-60c7-4aa7-a668-d1cd97e5335f:NXentry
-    duration:NX_FLOAT64[] = [ ... ]
-    end_time:NX_CHAR = 2019-05-02T17:45:48.078618
-    entry_identifier --> /entry/instrument/bluesky/uid
-    plan_name --> /entry/instrument/bluesky/metadata/plan_name
-    program_name:NX_CHAR = bluesky
-    start_time:NX_CHAR = 2019-05-02T17:45:33.937294
-    title:NX_CHAR = tune_mr-S0108-2ffe4d8
-    contact:NXuser
-      affiliation --> /entry/instrument/bluesky/streams/baseline/bss_user_info_institution/value_start
-      email --> /entry/instrument/bluesky/streams/baseline/bss_user_info_email/value_start
-      facility_user_id --> /entry/instrument/bluesky/streams/baseline/bss_user_info_badge/value_start
-      name --> /entry/instrument/bluesky/streams/baseline/bss_user_info_contact/value_start
-      role:NX_CHAR = contact
     data:NXdata
-      EPOCH --> /entry/instrument/bluesky/streams/primary/scaler0_time/time
-      I0_USAXS --> /entry/instrument/bluesky/streams/primary/I0_USAXS/value
-      m_stage_r --> /entry/instrument/bluesky/streams/primary/m_stage_r/value
-      m_stage_r_soft_limit_hi --> /entry/instrument/bluesky/streams/primary/m_stage_r_soft_limit_hi/value
-      m_stage_r_soft_limit_lo --> /entry/instrument/bluesky/streams/primary/m_stage_r_soft_limit_lo/value
-      m_stage_r_user_setpoint --> /entry/instrument/bluesky/streams/primary/m_stage_r_user_setpoint/value
-      scaler0_display_rate --> /entry/instrument/bluesky/streams/primary/scaler0_display_rate/value
-      scaler0_time --> /entry/instrument/bluesky/streams/primary/scaler0_time/value
+      It-net_current -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/streams/primary/It-net_current/value
+      energy -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/streams/primary/energy/value
+      energy-id-energy-readback -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/streams/primary/energy-id-energy-readback/value
+      ge_8element -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/streams/primary/ge_8element/value
+    duration = 38.35049033164978
+    entry_identifier -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.uid
     instrument:NXinstrument
       bluesky:NXnote
-        plan_name --> /entry/instrument/bluesky/metadata/plan_name
-        uid --> /entry/instrument/bluesky/metadata/run_start_uid
         metadata:NXnote
           start.detectors = 'I0'
           start.hints = '{"dimensions": [[["pitch2"], "primary"]]}'
@@ -47,14 +30,20 @@ root:NXroot
           start.num_points = 20
           start.plan_args = '{"args": ["EpicsMotor(prefix='25idDCM:AS:m6', name='pitc...'
           start.plan_name = 'rel_scan'
+            @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
           start.plan_pattern = 'inner_product'
           start.plan_pattern_args = '{"args": ["EpicsMotor(prefix='25idDCM:AS:m6', name='pitc...'
           start.plan_pattern_module = 'bluesky.plan_patterns'
           start.plan_type = 'generator'
           start.purpose = 'alignment'
+          start.sample_name = 'NMC-811'
+            @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
           start.scan_id = 1
+          start.scan_name = 'Pristine'
+            @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
           start.time = 1665065697.3635247
           start.uid = '7d1daf1d-60c7-4aa7-a668-d1cd97e5335f'
+            @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
           start.versions = '{"bluesky": "1.9.0", "ophyd": "1.7.0"}'
           stop.exit_status = 'success'
           stop.num_events = '{"primary": 20}'
@@ -69,27 +58,31 @@ root:NXroot
           summary.stream_names = 'primary'
           summary.timestamp = 1665065697.3635247
           summary.uid = '7d1daf1d-60c7-4aa7-a668-d1cd97e5335f'
+        plan_name -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.plan_name
         streams:NXnote
           baseline:NXnote
             aps_current:NXdata
-              EPOCH:NX_FLOAT64[2] = [ ... ]
-              time:NX_FLOAT64[2] = [ ... ]
-              value:NX_FLOAT64[2] = [ ... ]
-              value_end:NX_FLOAT64[] = [ ... ]
-              value_start:NX_FLOAT64[] = [ ... ]
+              @axes = 'time'
+              @signal = 'value'
+              EPOCH = [10 25]
+              time = [ 0 15]
+                @units = 's'
+              value = [130.  204.1]
+                @units = 'mA'
             aps_fill_number:NXdata
-              EPOCH:NX_FLOAT64[2] = [ ... ]
-              time:NX_FLOAT64[2] = [ ... ]
-              value:NX_FLOAT64[2] = [ ... ]
-              value_end:NX_FLOAT64[] = [ ... ]
-              value_start:NX_FLOAT64[] = [ ... ]
+              @axes = 'time'
+              @signal = 'value'
+              EPOCH = [10 25]
+              time = [ 0 15]
+                @units = 's'
+              value = [1 2]
             aps_global_feedback:NXdata
-              EPOCH:NX_FLOAT64[2] = [ ... ]
-              time:NX_FLOAT64[2] = [ ... ]
-              value:NX_CHAR[3,3] = ["Off", "Off"]
-              value_end:NX_CHAR = b'Off'
-              value_start:NX_CHAR = b'Off'
-            # many baseline groups omitted for brevity
+              @axes = 'time'
+              @signal = 'value'
+              EPOCH = [10 25]
+              time = [ 0 15]
+                @units = 's'
+              value = [ True False]
           primary:NXnote
             I0-net_current:NXdata
               @axes = 'time'
@@ -106,6 +99,7 @@ root:NXroot
               time = float64(100)
                 @units = 's'
               value = float64(100)
+                @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
                 @units = 'A'
             energy:NXdata
               @axes = 'time'
@@ -114,11 +108,23 @@ root:NXroot
               time = float64(100)
                 @units = 's'
               value = float64(100)
+                @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
                 @units = 'eV'
+            energy-id-energy-readback:NXdata
+              @axes = 'time'
+              @signal = 'value'
+              EPOCH = float64(100)
+              time = float64(100)
+                @units = 's'
+              value = float64(100)
+                @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
+                @units = 'keV'
             ge_8element:NXdata
               value = float64(100x8x4096)
+                @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
             ge_8element-element0-all_event:NXdata
               value = float64(100)
+        uid -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.uid
       detectors:NXnote
         I0_USAXS:NXdetector
           data --> /entry/instrument/bluesky/streams/primary/I0_USAXS
@@ -136,6 +142,11 @@ root:NXroot
         name:NX_CHAR = Bluesky framework
         probe:NX_CHAR = x-ray
         type:NX_CHAR = Synchrotron X-ray Source
+    plan_name -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.plan_name
+    sample_name -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.sample_name
+    scan_name -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.scan_name
+    start_time = '2022-10-06T09:14:57.363525-05:00'
+    stop_time = '2022-10-06T09:15:35.714015-05:00'
 """
 
 
@@ -187,6 +198,8 @@ metadata = {
         "plan_pattern_module": "bluesky.plan_patterns",
         "plan_type": "generator",
         "purpose": "alignment",
+        "sample_name": "NMC-811",
+        "scan_name": "Pristine",
         "scan_id": 1,
         "time": 1665065697.3635247,
         "uid": "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f",
@@ -225,7 +238,9 @@ async def nxfile(xafs_run):
 @pytest.mark.asyncio
 async def test_xafs_specification(nxfile):
     tree = nxfile.readfile().tree
-    print(tree)
+    # with open("/home/beams/WOLFMAN/tmp/test_file.tree", mode='w') as fd:
+    #     fd.write(tree)
+    tree = "\n" + tree + "\n"  # Extra newlines to match the triple quote string
     assert tree == specification
 
 

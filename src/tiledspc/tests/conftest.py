@@ -13,11 +13,24 @@ from tiled.server.app import build_app
 xafs_events = pd.DataFrame(
     {
         "energy": np.linspace(8300, 8400, num=100),
+        "energy-id-energy-readback": np.linspace(8.32, 8.42, num=100),
         "ts_energy": np.linspace(0, 15, num=100),
+        "ts_energy-id-energy-readback": np.linspace(0, 15, num=100),
         "It-net_current": np.abs(np.sin(np.linspace(0, 4 * np.pi, num=100))),
         "ts_It-net_current": np.linspace(0, 15, num=100),
         "I0-net_current": np.linspace(1, 2, num=100),
         "ts_I0-net_current": np.linspace(0, 15, num=100),
+    }
+)
+
+xafs_baseline = pd.DataFrame(
+    {
+        "aps_current": np.asarray([130.0, 204.1]),
+        "aps_fill_number": np.asarray([1, 2]),
+        "aps_global_feedback": np.asarray([True, False]),
+        "ts_aps_current": np.asarray([10, 25]),
+        "ts_aps_fill_number": np.asarray([10, 25]),
+        "ts_aps_global_feedback": np.asarray([10, 25]),
     }
 )
 
@@ -52,6 +65,20 @@ data_keys = {
         "source": "ca://25idcVME:3820:scaler1.T",
         "units": "eV",
     },
+    "energy-id-energy-readback": {
+        "dtype": "number",
+        "dtype_numpy": "<f8",
+        "limits": {
+            "control": {"high": 0.0, "low": 0.0},
+            "display": {"high": 0.0, "low": 0.0},
+        },
+        "object_name": "energy",
+        "precision": 3,
+        "shape": [],
+        "source": "ca://...",
+        "units": "keV",
+    },
+
     # "I0-mcs-scaler-channels-0-net_count": {
     #     "dtype": "number",
     #     "dtype_numpy": "<f8",
@@ -139,8 +166,51 @@ data_keys = {
 }
 
 
+baseline_data_keys = {
+    # "aps_current": np.asarray([130.0, 204.1]),
+    #     "aps_fill_number": np.asarray([1, 2]),
+    #     "aps_global_feedback": np.asarray([True, False]),
+    # }
+    "aps_current": {
+        "dtype": "number",
+        "dtype_numpy": "<f8",
+        "limits": {
+            "control": {"high": 0.0, "low": 0.0},
+            "display": {"high": 0.0, "low": 0.0},
+        },
+        "object_name": "aps",
+        "precision": 3,
+        "shape": [],
+        "source": "ca://...",
+        "units": "mA",
+    },
+    "aps_fill_number": {
+        "dtype": "number",
+        "dtype_numpy": "<u4",
+        "limits": {
+            "control": {"high": 0.0, "low": 0.0},
+            "display": {"high": 0.0, "low": 0.0},
+        },
+        "object_name": "aps",
+        "shape": [],
+        "source": "ca://...",
+    },
+    "aps_global_feedback": {
+        "dtype": "bool",
+        "dtype_numpy": "|u1",
+        "limits": {
+            "control": {"high": 0.0, "low": 0.0},
+            "display": {"high": 0.0, "low": 0.0},
+        },
+        "object_name": "aps",
+        "shape": [],
+        "source": "ca://...",
+    },
+}
+
+
 hints = {
-    "energy": {"fields": ["energy", "energy_id_energy_readback"]},
+    "energy": {"fields": ["energy", "energy-id-energy-readback"]},
     "It": {"fields": ["It-net_current"]},
     "ge_8element": {"fields": ["ge_8element"]},
 }
@@ -273,6 +343,9 @@ def xafs_run(tree):
         primary = client.create_container("primary", metadata={"hints": hints, "data_keys": data_keys})
         internal = primary.create_container("internal")
         internal.write_dataframe(xafs_events, key="events")
+        baseline = client.create_container("baseline", metadata={"hints": {}, "data_keys": baseline_data_keys})
+        internal = baseline.create_container("internal")
+        internal.write_dataframe(xafs_baseline, key="events")
         # Fluorescence detector data
         external = primary.create_container("external")
         external.write_array(np.zeros(shape=(100, 8, 4096)), key="ge_8element")
@@ -280,4 +353,5 @@ def xafs_run(tree):
         config = primary.create_container("config")
         for key, cfg in xafs_config.items():
             config.write_dataframe(cfg, key=key)
+        # Write a baseline stream
         yield tree

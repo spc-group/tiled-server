@@ -7,11 +7,9 @@ from typing import Mapping, IO
 import numpy as np
 import h5py
 from tiled.catalog.adapter import CatalogContainerAdapter
-from tiled.utils import (
-    ensure_awaitable,
-)
-from nexusformat.nexus import nxopen, NXFile
-from nexusformat.nexus.tree import NXentry, NXinstrument, NXnote, NXdata, NXfield, NXroot
+from tiled.utils import ensure_awaitable, SerializationError
+from nexusformat.nexus import nxopen, NXFile, NeXusError
+from nexusformat.nexus.tree import NXentry, NXinstrument, NXnote, NXdata, NXfield, NXroot, NXlinkfield
 
 log = logging.getLogger(__name__)
 
@@ -74,10 +72,11 @@ async def write_run(nxfile: NexusIO, node: CatalogContainerAdapter, metadata: Ma
     nxentry = NXentry()
     root[name] = nxentry
     # Create bluesky groups
+    nxentry["data"] = NXdata(date=None)
     nxentry["instrument"] = NXinstrument()
-    nxentry['instrument/bluesky'] = NXnote()
+    nxentry['instrument/bluesky'] = NXnote(date=None)
     bluesky_group = nxentry['instrument/bluesky']
-    bluesky_group["streams"] = NXnote()
+    bluesky_group["streams"] = NXnote(date=None)
     # Write stream data
     await write_metadata(metadata, nxentry=nxentry)
     for stream_name, stream_node in await node.items_range(0, None):
@@ -111,12 +110,30 @@ def to_hdf_type(value):
 
 async def write_metadata(metadata: dict[str], nxentry: NXentry):
     """Write run-level metadata to the Nexus file."""
-    md_group = NXnote()
-    nxentry['instrument/bluesky/metadata'] = md_group
+    bluesky_group = nxentry['instrument/bluesky']
+    md_group = NXnote(date=None)
+    bluesky_group['metadata'] = md_group
     flattened = {f"{doc_name}.{key}": value for doc_name, doc in metadata.items() for key, value in doc.items()}
     for key, value in flattened.items():
         value = to_hdf_type(value)
         md_group[key] = NXfield(value)
+    # Create additional convenient links
+    if "start.sample_name" in md_group.keys():
+        nxentry['sample_name'] = NXlinkfield(md_group['start.sample_name'])
+    if "start.scan_name" in md_group.keys():
+        nxentry['scan_name'] = NXlinkfield(md_group['start.scan_name'])
+    if "start.plan_name" in md_group.keys():
+        nxentry['plan_name'] = NXlinkfield(md_group['start.plan_name'])
+        bluesky_group['plan_name'] = NXlinkfield(md_group['start.plan_name'])
+    if "start.uid" in md_group.keys():
+        bluesky_group['uid'] = NXlinkfield(md_group['start.uid'])
+        nxentry["entry_identifier"] = NXlinkfield(md_group['start.uid'])
+    for phase in ['start', 'stop']:
+        if f"{phase}.time" in flattened.keys():
+            timestamp = dt.datetime.fromtimestamp(flattened[f"{phase}.time"])
+            nxentry[f'{phase}_time'] = NXfield(timestamp.astimezone().isoformat())
+    if "start.time" in flattened.keys() and "stop.time" in flattened.keys():
+        nxentry["duration"] = NXfield(flattened['stop.time'] - flattened['start.time'])
 
 
 async def write_stream(name: str, node, nxentry: NXentry, metadata: Mapping[str, dict] = {}):
@@ -145,31 +162,55 @@ async def write_stream(name: str, node, nxentry: NXentry, metadata: Mapping[str,
       The HDF5 group used to hold this stream's data.
 
     """
-    stream_group = NXnote()
+    stream_group = NXnote(date=None)
     nxentry[f"instrument/bluesky/streams/{name}"] = stream_group
     # Make sure we have access to these data
     containers = await asdict(node)
     internal = await asdict(containers['internal'])
     events = await internal['events'].read()
-    external = await asdict(containers['external'])
+    try:
+        external = await asdict(containers['external'])
+    except KeyError as exc:
+        external = None
     # Add individual data columns
     for col_name, desc in metadata['data_keys'].items():
         nxdata = NXdata()
         stream_group[col_name] = nxdata
         if "external" in desc:
+            if external is None:
+                raise SerializationError(f"No external container available for {col_name}")
             # Load and save external dataset from disk
             data = await external[col_name].read()
             nxdata['value'] = NXfield(data)
         else:
             # Save interal dataset
-            nxdata["value"] = NXfield(events[col_name].values)
-            nxdata['value'].attrs['units'] = desc['units']
-            times = events[f"ts_{col_name}"].values
-            nxdata["EPOCH"] = NXfield(times)
-            nxdata["time"] = times - np.min(times)
-            nxdata['time'].attrs['units'] = 's'
+            try:
+                nxdata["value"] = NXfield(events[col_name].values)
+            except KeyError:
+                raise SerializationError(f"Could not find internal dataset '{col_name}'")
+            if "units" in desc.keys():
+                nxdata['value'].attrs['units'] = desc['units']
             nxdata.attrs['signal'] = "value"
-            nxdata.attrs['axes'] = "time"
+            try:
+                times = events[f"ts_{col_name}"].values
+            except KeyError:
+                log.error(f"Could not find timestamps for internal dataset '{col_name}'")
+            else:
+                nxdata["EPOCH"] = NXfield(times)
+                nxdata["time"] = times - np.min(times)
+                nxdata['time'].attrs['units'] = 's'
+                nxdata.attrs['axes'] = "time"
+    # Add links to the main NXdata group
+    root_nxdata = nxentry["data"]
+    for device, hints in metadata.get('hints', {}).items():
+        for field in hints["fields"]:
+            # Make sure the field name is not already used in another stream
+            link_name = field if field not in root_nxdata.keys() else f"field_{name}"
+            # Write the link
+            try:
+                root_nxdata[link_name] = NXlinkfield(stream_group[field]['value'])
+            except NeXusError:
+                raise SerializationError(f"Could not link hinted '{name}' field: '{field}'")
     return stream_group
 
 
