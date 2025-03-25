@@ -114,6 +114,7 @@ def to_hdf_type(value):
         # (old => new)
         (dt.datetime, str),
         (Mapping, json.dumps),
+        (Sequence, json.dumps),
     ]
     new_types = [new for old, new in type_conversions if isinstance(value, old)]
     new_type = [*new_types, lambda x: x][0]
