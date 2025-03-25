@@ -1,13 +1,10 @@
 import datetime
 import io
 
-import h5py
 import pytest
 import pytest_asyncio
-from tiled.catalog.adapter import CatalogContainerAdapter
 
-from tiledspc.serialization.nexus import serialize_nexus, NexusIO
-
+from tiledspc.serialization.nexus import NexusIO, serialize_nexus
 
 specification = """
 root:NXroot
@@ -125,23 +122,6 @@ root:NXroot
             ge_8element-element0-all_event:NXdata
               value = float64(100)
         uid -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.uid
-      detectors:NXnote
-        I0_USAXS:NXdetector
-          data --> /entry/instrument/bluesky/streams/primary/I0_USAXS
-      monochromator:NXmonochromator
-        energy --> /entry/instrument/bluesky/streams/baseline/monochromator_dcm_energy/value_start
-        feedback_on --> /entry/instrument/bluesky/streams/baseline/monochromator_feedback_on/value_start
-        mode --> /entry/instrument/bluesky/streams/baseline/monochromator_dcm_mode/value_start
-        theta --> /entry/instrument/bluesky/streams/baseline/monochromator_dcm_theta/value_start
-        wavelength --> /entry/instrument/bluesky/streams/baseline/monochromator_dcm_wavelength/value_start
-        y_offset --> /entry/instrument/bluesky/streams/baseline/monochromator_dcm_y_offset/value_start
-      positioners:NXnote
-        m_stage_r:NXpositioner
-          value --> /entry/instrument/bluesky/streams/primary/m_stage_r
-      source:NXsource
-        name:NX_CHAR = Bluesky framework
-        probe:NX_CHAR = x-ray
-        type:NX_CHAR = Synchrotron X-ray Source
     plan_name -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.plan_name
     sample_name -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.sample_name
     scan_name -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.scan_name
@@ -228,7 +208,9 @@ metadata = {
 @pytest_asyncio.fixture()
 async def nxfile(xafs_run):
     # Generate the headers
-    buff = bytes(await serialize_nexus(xafs_run, metadata=metadata, filter_for_access=None))
+    buff = bytes(
+        await serialize_nexus(xafs_run, metadata=metadata, filter_for_access=None)
+    )
     buff = io.BytesIO(buff)
     with NexusIO(buff, mode="r") as fd:
         # Write data entry to the nexus file

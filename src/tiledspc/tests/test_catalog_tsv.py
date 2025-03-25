@@ -2,10 +2,9 @@ import datetime
 import io
 
 import pandas as pd
-import pytest
 import pytest_asyncio
 
-from tiledspc.serialization.tsv import build_xdi, headers, serialize_xdi, serialize_tsv
+from tiledspc.serialization.tsv import headers, serialize_tsv, serialize_xdi
 
 # <BlueskyRun({'primary'})>
 metadata = {
@@ -108,7 +107,7 @@ async def tsv_text(xafs_run):
 def test_required_headers(xdi_text):
     assert "# XDI/1.0 bluesky/1.9.0 ophyd/1.7.0" in xdi_text
     assert "# Column.1: energy eV" in xdi_text
-    assert "# Column.2: It-net_current A" in xdi_text
+    assert "# Column.3: It-net_current A" in xdi_text
     assert "# Element.symbol: Ni" in xdi_text
     assert "# Element.edge: K" in xdi_text
     assert "# Mono.d_spacing: 3" in xdi_text  # Not implemented yet
@@ -129,12 +128,12 @@ def test_optional_headers(xdi_text):
 
 def test_tsv_headers(tsv_text):
     """Do we still get a valid TSV file without any metadata."""
-    assert "# energy\tIt-net_current" in tsv_text
+    assert "# energy\tenergy-id-energy-readback\tIt-net_current" in tsv_text
     assert "d_spacing" not in tsv_text
     # Check the data
     buff = io.StringIO(tsv_text)
     df = pd.read_csv(buff, comment="#", sep="\t")
-    assert len(df.columns) == 2
+    assert len(df.columns) == 3
 
 
 def test_missing_edge(tsv_text):
@@ -158,7 +157,7 @@ def test_data(xdi_text):
     # Read as if it were a pandas dataframe
     buff = io.StringIO(xdi_text)
     # Check for the header
-    assert "# energy\tIt-net_current" in xdi_text
+    assert "# energy\tenergy-id-energy-readback\tIt-net_current" in xdi_text
     # Check the data
     df = pd.read_csv(buff, comment="#", sep="\t")
-    assert len(df.columns) == 2
+    assert len(df.columns) == 3

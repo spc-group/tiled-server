@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 from tiled.adapters.mapping import MapAdapter
 from tiled.adapters.table import TableAdapter
-from tiled.catalog.adapter import CatalogContainerAdapter
 from tiled.catalog import in_memory
 from tiled.client import Context, from_context
 from tiled.server.app import build_app
@@ -78,7 +77,6 @@ data_keys = {
         "source": "ca://...",
         "units": "keV",
     },
-
     # "I0-mcs-scaler-channels-0-net_count": {
     #     "dtype": "number",
     #     "dtype_numpy": "<f8",
@@ -340,16 +338,22 @@ def xafs_run(tree):
     with Context.from_app(build_app(tree)) as context:
         client = from_context(context)
         # Write sample data
-        primary = client.create_container("primary", metadata={"hints": hints, "data_keys": data_keys})
+        primary = client.create_container(
+            "primary", metadata={"hints": hints, "data_keys": data_keys}
+        )
         internal = primary.create_container("internal")
         internal.write_dataframe(xafs_events, key="events")
-        baseline = client.create_container("baseline", metadata={"hints": {}, "data_keys": baseline_data_keys})
+        baseline = client.create_container(
+            "baseline", metadata={"hints": {}, "data_keys": baseline_data_keys}
+        )
         internal = baseline.create_container("internal")
         internal.write_dataframe(xafs_baseline, key="events")
         # Fluorescence detector data
         external = primary.create_container("external")
         external.write_array(np.zeros(shape=(100, 8, 4096)), key="ge_8element")
-        external.write_array(np.ones(shape=(100,)), key="ge_8element-element0-all_event")
+        external.write_array(
+            np.ones(shape=(100,)), key="ge_8element-element0-all_event"
+        )
         config = primary.create_container("config")
         for key, cfg in xafs_config.items():
             config.write_dataframe(cfg, key=key)
