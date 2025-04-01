@@ -20,9 +20,9 @@ root:NXroot
     instrument:NXinstrument
       bluesky:NXnote
         metadata:NXnote
-          start.detectors = 'I0'
+          start.detectors = '["I0"]'
           start.hints = '{"dimensions": [[["pitch2"], "primary"]]}'
-          start.motors = 'pitch2'
+          start.motors = '["pitch2"]'
           start.num_intervals = 19
           start.num_points = 20
           start.plan_args = '{"args": ["EpicsMotor(prefix='25idDCM:AS:m6', name='pitc...'
@@ -52,7 +52,7 @@ root:NXroot
           summary.duration = 38.35049033164978
           summary.plan_name = 'rel_scan'
           summary.scan_id = 1
-          summary.stream_names = 'primary'
+          summary.stream_names = '["primary"]'
           summary.timestamp = 1665065697.3635247
           summary.uid = '7d1daf1d-60c7-4aa7-a668-d1cd97e5335f'
         plan_name -> /7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrument/bluesky/metadata/start.plan_name
