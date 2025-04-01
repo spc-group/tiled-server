@@ -1,10 +1,11 @@
 import datetime
 import io
+from unittest import mock
 
 import pytest
 import pytest_asyncio
 
-from tiledspc.serialization.nexus import NexusIO, serialize_nexus
+from tiledspc.serialization.nexus import NexusIO, serialize_nexus, write_stream
 
 specification = """
 root:NXroot
@@ -234,3 +235,17 @@ async def test_file_structure(nxfile):
     assert uid in nxfile.keys()
     entry = nxfile[uid]
     assert entry.attrs["NX_class"] == "NXentry"
+
+
+@pytest.mark.asyncio
+async def test_missing_hints(xafs_run):
+    """Make sure the stream still writes if there are not hints."""
+    await write_stream(
+        name="primary",
+        node=mock.AsyncMock(),
+        nxentry=mock.MagicMock(),
+        metadata={
+            "data_keys": {},
+            "hints": {"I0": {}},
+        },
+    )

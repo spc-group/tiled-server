@@ -185,8 +185,12 @@ async def write_stream(
     nxentry[f"instrument/bluesky/streams/{name}"] = stream_group
     # Make sure we have access to these data
     containers = await asdict(node)
-    internal = await asdict(containers["internal"])
-    events = await internal["events"].read()
+    try:
+        internal = await asdict(containers["internal"])
+        events = await internal["events"].read()
+    except KeyError:
+        # We don't have an internal dataset for some reason
+        events = None
     try:
         external = await asdict(containers["external"])
     except KeyError as exc:
@@ -228,10 +232,12 @@ async def write_stream(
     # Add links to the main NXdata group
     if name == "baseline":
         # We don't want to see baseline fields in the data NXdata group
-        return stream_group
+        stream_hints = {}
+    else:
+        stream_hints = metadata.get("hints", {})
     root_nxdata = nxentry["data"]
-    for device, hints in metadata.get("hints", {}).items():
-        for field in hints["fields"]:
+    for device, hints in stream_hints.items():
+        for field in hints.get("fields", []):
             # Make sure the field name is not already used in another stream
             link_name = field if field not in root_nxdata.keys() else f"field_{name}"
             # Write the link
