@@ -204,7 +204,7 @@ async def write_stream(
             data = await external[col_name].read()
             nxdata["value"] = NXfield(data)
         else:
-            # Save interal dataset
+            # Save internal dataset
             try:
                 nxdata["value"] = NXfield(events[col_name].values)
             except KeyError:
@@ -226,6 +226,9 @@ async def write_stream(
                 nxdata["time"].attrs["units"] = "s"
                 nxdata.attrs["axes"] = "time"
     # Add links to the main NXdata group
+    if name == "baseline":
+        # We don't want to see baseline fields in the data NXdata group
+        return stream_group
     root_nxdata = nxentry["data"]
     for device, hints in metadata.get("hints", {}).items():
         for field in hints["fields"]:

@@ -344,7 +344,11 @@ def xafs_run(tree):
         internal = primary.create_container("internal")
         internal.write_dataframe(xafs_events, key="events")
         baseline = client.create_container(
-            "baseline", metadata={"hints": {}, "data_keys": baseline_data_keys}
+            "baseline",
+            metadata={
+                "hints": {"aps_current": {"fields": ["aps_current"]}},
+                "data_keys": baseline_data_keys,
+            },
         )
         internal = baseline.create_container("internal")
         internal.write_dataframe(xafs_baseline, key="events")
