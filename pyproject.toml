@@ -4,7 +4,7 @@ version = "2024.7.0"
 authors = [
   { name="Mark Wolfman", email="wolfman@anl.gov" },
 ]
-description = "Extra bits for running a tiled server for the Spectroscopy (SPC) group."
+description = "Extra bits for running a Tiled server for the Spectroscopy (SPC) group."
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -18,7 +18,7 @@ classifiers = [
 keywords = ["synchrotron", "xray", "tiled"]
 dependencies = [
     "bluesky-tiled-plugins",
-    "tiled[all] >=v0.1.0-b24",
+    "tiled[all] =v0.1.0-b27",
     "area-detector-handlers",
     "event-model",
     "suitcase",

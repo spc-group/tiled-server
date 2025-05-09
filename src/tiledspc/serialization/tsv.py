@@ -1,4 +1,3 @@
-import asyncio
 import datetime as dt
 import io
 import logging
@@ -50,7 +49,7 @@ def headers(
         yield f"# Element.symbol: {elem}"
         yield f"# Element.edge: {edge}"
     # Instrument metadata
-    d_spacing = metadata.get('d_spacing')
+    d_spacing = metadata.get("start", {}).get("d_spacing")
     if d_spacing == "None":
         d_spacing = None
     if d_spacing is None and strict:
@@ -108,7 +107,7 @@ async def load_datasets(
     """
     items = {key: node for key, node in await node.items_range(0, None)}
     streams = {key: node for key, node in await items["streams"].items_range(0, None)}
-    stream_node = streams['primary']
+    stream_node = streams["primary"]
     stream_items = {key: node for key, node in await stream_node.items_range(0, None)}
     internal_table = stream_items["internal"]
     return stream_node, internal_table
@@ -133,9 +132,7 @@ def build_xdi(
     data_keys_ = data_keys(stream_metadata)
     # Write headers
     xdi_text = ""
-    hdrs = headers(
-        metadata, data_keys=data_keys_, strict=strict
-    )
+    hdrs = headers(metadata, data_keys=data_keys_, strict=strict)
     xdi_text += "\n".join(hdrs) + "\n"
     # Write data
     cols = "\t".join(data_keys_.keys())
@@ -177,14 +174,7 @@ async def serialize_xdi(node, metadata, filter_for_access):
     """
     stream_node, data_node = await load_datasets(node)
     # Get extra data
-    if config_node is None:
-        raise SerializationError(
-            "Could not read needed configuration data for XDI file."
-        )
-    data, energy_config = await asyncio.gather(
-        data_node.read(),
-        config_node.read(),
-    )
+    data = await data_node.read()
     xdi_text = build_xdi(
         metadata=metadata,
         stream_metadata=stream_node.metadata(),
