@@ -18,7 +18,7 @@ classifiers = [
 keywords = ["synchrotron", "xray", "tiled"]
 dependencies = [
     "bluesky-tiled-plugins",
-    "tiled[all] =v0.1.0-b27",
+    "tiled[all]==0.1.0-b27",
     "area-detector-handlers",
     "event-model",
     "suitcase",
