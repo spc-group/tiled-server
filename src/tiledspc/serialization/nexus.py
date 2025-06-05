@@ -91,7 +91,8 @@ async def write_run(
     bluesky_group["streams"] = NXnote(date=None)
     # Write stream data
     await write_metadata(metadata, nxentry=nxentry)
-    for stream_name, stream_node in await node.items_range(0, None):
+    streams = (await asdict(node))["streams"]
+    for stream_name, stream_node in await streams.items_range(0, None):
         await write_stream(
             name=stream_name,
             node=stream_node,
@@ -184,33 +185,23 @@ async def write_stream(
     stream_group = NXnote(date=None)
     nxentry[f"instrument/bluesky/streams/{name}"] = stream_group
     # Make sure we have access to these data
-    containers = await asdict(node)
+    stream = await asdict(node)
     try:
-        internal = await asdict(containers["internal"])
-        events = await internal["events"].read()
+        internal = await stream["internal"].read()
     except KeyError:
         # We don't have an internal dataset for some reason
-        events = None
-    try:
-        external = await asdict(containers["external"])
-    except KeyError as exc:
-        external = None
-    # Add individual data columns
+        internal = None
     for col_name, desc in metadata["data_keys"].items():
         nxdata = NXdata()
         stream_group[col_name] = nxdata
         if "external" in desc:
-            if external is None:
-                raise SerializationError(
-                    f"No external container available for {col_name}"
-                )
             # Load and save external dataset from disk
-            data = await external[col_name].read()
+            data = await stream[col_name].read()
             nxdata["value"] = NXfield(data)
         else:
             # Save internal dataset
             try:
-                nxdata["value"] = NXfield(events[col_name].values)
+                nxdata["value"] = NXfield(internal[col_name].values)
             except KeyError:
                 raise SerializationError(
                     f"Could not find internal dataset '{col_name}'"
@@ -219,7 +210,7 @@ async def write_stream(
                 nxdata["value"].attrs["units"] = desc["units"]
             nxdata.attrs["signal"] = "value"
             try:
-                times = events[f"ts_{col_name}"].values
+                times = internal[f"ts_{col_name}"].values
             except KeyError:
                 log.error(
                     f"Could not find timestamps for internal dataset '{col_name}'"

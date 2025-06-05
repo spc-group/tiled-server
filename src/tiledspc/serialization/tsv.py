@@ -1,4 +1,3 @@
-import asyncio
 import datetime as dt
 import io
 import logging
@@ -6,7 +5,7 @@ from collections.abc import Mapping
 from typing import IO, Any
 
 from pandas import DataFrame
-from tiled.catalog.adapter import CatalogNodeAdapter
+from tiled.catalog.adapter import CatalogNodeAdapter, CatalogTableAdapter
 from tiled.utils import SerializationError
 
 __all__ = ["serialize_xdi"]
@@ -18,7 +17,6 @@ log = logging.getLogger(__name__)
 def headers(
     metadata: Mapping[str, Mapping],
     data_keys: Mapping[str, Mapping],
-    d_spacing: str | None,
     *,
     strict: bool,
 ):
@@ -51,11 +49,14 @@ def headers(
         yield f"# Element.symbol: {elem}"
         yield f"# Element.edge: {edge}"
     # Instrument metadata
+    d_spacing = metadata.get("start", {}).get("d_spacing")
+    if d_spacing == "None":
+        d_spacing = None
     if d_spacing is None and strict:
         raise SerializationError(
             "Argument *d_spacing* cannot be none with strict XDI formatting."
         )
-    elif d_spacing not in [None, "None"]:
+    elif d_spacing is not None:
         yield f"# Mono.d_spacing: {d_spacing}"
     # Facility information
     if "time" in start_doc or strict:
@@ -93,7 +94,7 @@ def data_keys(metadata: Mapping[str, Mapping | str | float | int]) -> dict[str, 
 
 async def load_datasets(
     node: CatalogNodeAdapter,
-) -> tuple[CatalogNodeAdapter, CatalogNodeAdapter, CatalogNodeAdapter]:
+) -> tuple[CatalogNodeAdapter, CatalogTableAdapter]:
     """Decide which datasets to plot.
 
     Returns
@@ -102,30 +103,20 @@ async def load_datasets(
       The node for the ("primary" by default) data stream.
     internal_node
       The node for the internal data frame.
-    config_node
-      The node for the internal config data frame.
+
     """
     items = {key: node for key, node in await node.items_range(0, None)}
-    stream_node = items["primary"]
+    streams = {key: node for key, node in await items["streams"].items_range(0, None)}
+    stream_node = streams["primary"]
     stream_items = {key: node for key, node in await stream_node.items_range(0, None)}
-    internal_items = {
-        key: node for key, node in await stream_items["internal"].items_range(0, None)
-    }
-    config_items = {
-        key: node for key, node in await stream_items["config"].items_range(0, None)
-    }
-    try:
-        energy_frame = config_items["energy"]
-    except KeyError:
-        energy_frame = None
-    return stream_node, internal_items["events"], energy_frame
+    internal_table = stream_items["internal"]
+    return stream_node, internal_table
 
 
 def build_xdi(
     metadata: dict[str, Any],
     stream_metadata: dict[str, Any],
     data: DataFrame,
-    energy_config: DataFrame,
     *,
     strict: bool,
 ) -> IO[bytes]:
@@ -139,15 +130,9 @@ def build_xdi(
 
     """
     data_keys_ = data_keys(stream_metadata)
-    try:
-        d_spacing = energy_config["energy-monochromator-d_spacing"].values[0]
-    except TypeError:
-        d_spacing = None
     # Write headers
     xdi_text = ""
-    hdrs = headers(
-        metadata, data_keys=data_keys_, d_spacing=f"{d_spacing}", strict=strict
-    )
+    hdrs = headers(metadata, data_keys=data_keys_, strict=strict)
     xdi_text += "\n".join(hdrs) + "\n"
     # Write data
     cols = "\t".join(data_keys_.keys())
@@ -167,14 +152,13 @@ async def serialize_tsv(node, metadata, filter_for_access):
     Includes some headers, though nothing is required."
 
     """
-    stream_node, data_node, config_node = await load_datasets(node)
+    stream_node, data_node = await load_datasets(node)
     # Get extra data
     data = await data_node.read()
     xdi_text = build_xdi(
         metadata=metadata,
         stream_metadata=stream_node.metadata(),
         data=data,
-        energy_config=None,
         strict=False,
     )
     return xdi_text.encode("utf-8")
@@ -188,21 +172,13 @@ async def serialize_xdi(node, metadata, filter_for_access):
     Follows the XDI spectroscopy definition."
 
     """
-    stream_node, data_node, config_node = await load_datasets(node)
+    stream_node, data_node = await load_datasets(node)
     # Get extra data
-    if config_node is None:
-        raise SerializationError(
-            "Could not read needed configuration data for XDI file."
-        )
-    data, energy_config = await asyncio.gather(
-        data_node.read(),
-        config_node.read(),
-    )
+    data = await data_node.read()
     xdi_text = build_xdi(
         metadata=metadata,
         stream_metadata=stream_node.metadata(),
         data=data,
-        energy_config=energy_config,
         strict=True,
     )
     return xdi_text.encode("utf-8")
