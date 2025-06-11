@@ -201,6 +201,7 @@ hints = {
     "energy": {"fields": ["energy", "energy-id-energy-readback"]},
     "It": {"fields": ["It-net_current"]},
     "ge_8element": {"fields": ["ge_8element"]},
+    "no_device": {},  # Make sure we test a device with no hints
 }
 
 

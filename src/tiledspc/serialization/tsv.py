@@ -85,7 +85,9 @@ def data_keys(metadata: Mapping[str, Mapping | str | float | int]) -> dict[str, 
     """
     dkeys = metadata["data_keys"]
     hints = metadata["hints"]
-    hints = [hint for dev_hints in hints.values() for hint in dev_hints["fields"]]
+    hints = [
+        hint for dev_hints in hints.values() for hint in dev_hints.get("fields", [])
+    ]
     dkeys = {key: desc for key, desc in dkeys.items() if key in hints}
     # Remove external datasets that won't be in the internal dataframe
     dkeys = {key: desc for key, desc in dkeys.items() if "external" not in desc}
