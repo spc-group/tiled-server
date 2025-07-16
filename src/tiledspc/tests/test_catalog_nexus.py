@@ -1,15 +1,18 @@
 import datetime
 import io
-from unittest import mock
 from typing import IO
+from unittest import mock
 
 import h5py
 import numpy as np
 import pytest
 import pytest_asyncio
-from nexusformat.nexus import NeXusError, NXFile
+from nexusformat.nexus import NXFile
 
-from tiledspc.serialization.nexus import serialize_nexus, write_stream, chunk_size, slices
+from tiledspc.serialization.nexus import (
+    serialize_nexus,
+    write_stream,
+)
 
 specification = """
 root:NXroot
@@ -275,6 +278,7 @@ async def test_file_structure(nxfile):
 @pytest.mark.asyncio
 async def test_missing_hints(xafs_run):
     """Make sure the stream still writes if there are not hints."""
+    print(write_stream)
     await write_stream(
         name="primary",
         node=mock.AsyncMock(),
@@ -297,23 +301,3 @@ async def test_external_datasets(nxfile):
     assert ds.shape == (100, 8, 4096)
     assert ds.dtype == np.int64
     assert np.min(ds) == 2
-
-def test_chunk_size():
-    chunks = ((1, 1, 1, 1, 1, 1), (512,), (1024,))
-    assert chunk_size(chunks) == (1, 512, 1024)
-
-
-def test_slices():
-    chunk_size = ((4, 256, 512))
-    shape = (8, 512, 1024)
-    actual_slices = list(slices(chunk_size=chunk_size, shape=shape))
-    assert actual_slices == [
-        (slice(0, 4, 1), slice(0, 256, 1), slice(0, 512, 1)),
-        (slice(0, 4, 1), slice(0, 256, 1), slice(512, 1024, 1)),
-        (slice(0, 4, 1), slice(256, 512, 1), slice(0, 512, 1)),
-        (slice(0, 4, 1), slice(256, 512, 1), slice(512, 1024, 1)),
-        (slice(4, 8, 1), slice(0, 256, 1), slice(0, 512, 1)),
-        (slice(4, 8, 1), slice(0, 256, 1), slice(512, 1024, 1)),
-        (slice(4, 8, 1), slice(256, 512, 1), slice(0, 512, 1)),
-        (slice(4, 8, 1), slice(256, 512, 1), slice(512, 1024, 1)),
-    ]
