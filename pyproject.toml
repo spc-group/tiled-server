@@ -19,6 +19,8 @@ keywords = ["synchrotron", "xray", "tiled"]
 dependencies = [
     "tiled[all]==0.1.0-b29",
     "area-detector-handlers",
+    "bluesky-tiled-plugins==2.0.0b64",
+    "databroker==2.0.0b64",
     "event-model",
     "suitcase",
     "suitcase-mongo",
@@ -29,11 +31,10 @@ dependencies = [
     "netCDF4",
     "exdir",
     "pandas",
-    "nexusformat",
 ]
 
 [project.optional-dependencies]
-dev = ["black", "pytest", "pytest-asyncio", "build", "twine", "flake8"]
+dev = ["black", "pytest", "pytest-asyncio", "build", "twine", "flake8", "nexusformat",]
 
 [project.urls]
 "Homepage" = "https://github.com/spc-group/tiled-server"

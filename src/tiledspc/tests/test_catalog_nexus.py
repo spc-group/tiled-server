@@ -1,11 +1,15 @@
 import datetime
 import io
 from unittest import mock
+from typing import IO
 
+import h5py
+import numpy as np
 import pytest
 import pytest_asyncio
+from nexusformat.nexus import NeXusError, NXFile
 
-from tiledspc.serialization.nexus import NexusIO, serialize_nexus, write_stream
+from tiledspc.serialization.nexus import serialize_nexus, write_stream, chunk_size, slices
 
 specification = """
 root:NXroot
@@ -118,7 +122,7 @@ root:NXroot
                 @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
                 @units = 'keV'
             ge_8element:NXdata
-              value = float64(100x8x4096)
+              value = int64(100x8x4096)
                 @target = '/7d1daf1d-60c7-4aa7-a668-d1cd97e5335f/instrume...'
             ge_8element-element0-all_event:NXdata
               value = float64(100)
@@ -206,6 +210,37 @@ metadata = {
 }
 
 
+class NexusIO(NXFile):
+    def __init__(self, bytesio: IO[bytes], mode: str = "r", **kwargs):
+        self.h5 = h5py
+        self.name = ""
+        self._file = None
+        self._filename = "/dev/null"
+        self._filedir = "/tmp"
+        self._lock = None
+        self._lockdir = None
+        self._path = "/"
+        self._root = None
+        self._with_count = 0
+        self.recursive = True
+
+        self._file = self.h5.File(bytesio, mode, **kwargs)
+
+        if mode == "r":
+            self._mode = "r"
+        else:
+            self._mode = "rw"
+
+    def acquire_lock(self, timeout=None):
+        pass
+
+    def release_lock(self, timeout=None):
+        pass
+
+    def open(self, **kw):
+        pass
+
+
 @pytest_asyncio.fixture()
 async def nxfile(xafs_run):
     # Generate the headers
@@ -243,9 +278,42 @@ async def test_missing_hints(xafs_run):
     await write_stream(
         name="primary",
         node=mock.AsyncMock(),
-        nxentry=mock.MagicMock(),
+        entry=mock.MagicMock(),
         metadata={
             "data_keys": {},
             "hints": {"I0": {}},
         },
     )
+
+
+@pytest.mark.asyncio
+async def test_external_datasets(nxfile):
+    """Make sure the data from an external dataset gets properly written
+    to the HDF5 file.
+
+    """
+    uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
+    ds = nxfile[f"{uid}/data/ge_8element"]
+    assert ds.shape == (100, 8, 4096)
+    assert ds.dtype == np.int64
+    assert np.min(ds) == 2
+
+def test_chunk_size():
+    chunks = ((1, 1, 1, 1, 1, 1), (512,), (1024,))
+    assert chunk_size(chunks) == (1, 512, 1024)
+
+
+def test_slices():
+    chunk_size = ((4, 256, 512))
+    shape = (8, 512, 1024)
+    actual_slices = list(slices(chunk_size=chunk_size, shape=shape))
+    assert actual_slices == [
+        (slice(0, 4, 1), slice(0, 256, 1), slice(0, 512, 1)),
+        (slice(0, 4, 1), slice(0, 256, 1), slice(512, 1024, 1)),
+        (slice(0, 4, 1), slice(256, 512, 1), slice(0, 512, 1)),
+        (slice(0, 4, 1), slice(256, 512, 1), slice(512, 1024, 1)),
+        (slice(4, 8, 1), slice(0, 256, 1), slice(0, 512, 1)),
+        (slice(4, 8, 1), slice(0, 256, 1), slice(512, 1024, 1)),
+        (slice(4, 8, 1), slice(256, 512, 1), slice(0, 512, 1)),
+        (slice(4, 8, 1), slice(256, 512, 1), slice(512, 1024, 1)),
+    ]

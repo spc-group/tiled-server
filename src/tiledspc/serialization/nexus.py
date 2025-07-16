@@ -2,22 +2,16 @@ import datetime as dt
 import io
 import json
 import logging
-from typing import IO, Mapping
+import warnings
+from collections.abc import Mapping, Sequence, Generator
+from itertools import product
+from typing import IO
+from pathlib import Path
 
 import h5py
 import numpy as np
-from nexusformat.nexus import NeXusError, NXFile
-from nexusformat.nexus.tree import (
-    NXdata,
-    NXentry,
-    NXfield,
-    NXinstrument,
-    NXlinkfield,
-    NXnote,
-    NXroot,
-)
 from tiled.catalog.adapter import CatalogContainerAdapter
-from tiled.utils import SerializationError
+from tiled.utils import SerializationError, path_from_uri
 
 log = logging.getLogger(__name__)
 
@@ -27,80 +21,91 @@ async def asdict(node):
     return {key: val for key, val in await node.items_range(0, None)}
 
 
-class NexusIO(NXFile):
-    def __init__(self, bytesio: IO[bytes], mode: str = "r", **kwargs):
-        self.h5 = h5py
-        self.name = ""
-        self._file = None
-        self._filename = "/dev/null"
-        self._filedir = "/tmp"
-        self._lock = None
-        self._lockdir = None
-        self._path = "/"
-        self._root = None
-        self._with_count = 0
-        self.recursive = True
 
-        self._file = self.h5.File(bytesio, mode, **kwargs)
 
-        if mode == "r":
-            self._mode = "r"
-        else:
-            self._mode = "rw"
+def nxgroup(parent: h5py.Group, name: str, nx_class: str=None)  -> h5py.Group:
+    group = parent.create_group(name)
+    if nx_class is not None:
+        group.attrs['NX_class'] = nx_class
+    return group
 
-    def acquire_lock(self, timeout=None):
-        pass
+def nxentry(parent: h5py.Group, name: str) -> h5py.Group:
+    return nxgroup(parent=parent, name=name, nx_class="NXentry")
 
-    def release_lock(self, timeout=None):
-        pass
 
-    def open(self, **kw):
-        pass
+def nxdata(parent: h5py.Group, name: str) -> h5py.Group:
+    return nxgroup(parent=parent, name=name, nx_class="NXdata")
+
+
+def nxinstrument(parent: h5py.Group, name: str) -> h5py.Group:
+    return nxgroup(parent=parent, name=name, nx_class="NXinstrument")
+
+
+def nxnote(parent: h5py.Group, name: str) -> h5py.Group:
+    return nxgroup(parent=parent, name=name, nx_class="NXnote")
+
+
+def nxfield(parent: h5py.Group, name: str, value) -> h5py.Dataset:
+    field = parent.create_dataset(name, data=value)
+    return field
+
+
+def nxlink(parent: h5py.Group, name: str, target: h5py.Group | str, soft=False):
+    """Create a link between datasets within the same file."""
+    if soft:
+        target_name = target
+        link = h5py.SoftLink(target_name)
+    else:
+        target_name = target.name
+        link = target
+    parent[name] = link
+    # Add metadata attrs
+    try:
+        parent[name].attrs['target'] = target_name
+    except KeyError:
+        # Most likely this is a soft link to an open dataset, but in
+        # case it's not…
+        if not soft:
+            raise
+
+
+def nxexternallink(parent: h5py.Group, name: str, target: str, filepath: Path):
+    """Create a link between a dataset in an external file."""
+    other_file = str(filepath.resolve().expanduser())
+    link = h5py.ExternalLink(other_file, target)
+    parent[name] = link
 
 
 async def write_run(
-    nxfile: NexusIO,
+    nxfile: h5py.File,
     node: CatalogContainerAdapter,
     metadata: Mapping[str, Mapping | float | str | int],
-) -> NXroot:
+):
     """Write a run to the HDF file as a nexus-compatiable entry.
 
     *node* should be the container for this run. E.g.
 
-    .. code-block:: python
-
-        uid = "7d1daf1d-60c7-4aa7-a668-d1cd97e5335f"
-        write_stream(name=uid, node=client[uid])
-
-    Returns
-    =======
-    root
-      The HDF5 :NXentry group used to hold this run's data.
-
     """
     name = metadata["start"]["uid"]
-    root = nxfile.readfile()
-    root.attrs["default"] = name
-    nxentry = NXentry()
-    root[name] = nxentry
+    nxfile.attrs["default"] = name
+    entry = nxentry(nxfile, name)
     # Create bluesky groups
-    nxentry["data"] = NXdata(date=None)
-    nxentry["instrument"] = NXinstrument()
-    nxentry["instrument/bluesky"] = NXnote(date=None)
-    bluesky_group = nxentry["instrument/bluesky"]
-    bluesky_group["streams"] = NXnote(date=None)
+    nxdata(entry, "data")
+    instrument = nxinstrument(entry, "instrument")
+    bluesky = nxnote(instrument, "bluesky")
+    nxnote(bluesky, "streams")
     # Write stream data
-    await write_metadata(metadata, nxentry=nxentry)
+    write_metadata(metadata, entry=entry)
     streams = (await asdict(node))["streams"]
     for stream_name, stream_node in await streams.items_range(0, None):
         await write_stream(
             name=stream_name,
             node=stream_node,
-            nxentry=nxentry,
+            entry=entry,
             metadata=stream_node.metadata(),
         )
     # Write attributes
-    return root
+    return entry
 
 
 def to_hdf_type(value):
@@ -122,11 +127,10 @@ def to_hdf_type(value):
     return new_type(value)
 
 
-async def write_metadata(metadata: dict[str], nxentry: NXentry):
+def write_metadata(metadata: dict[str], entry: h5py.Group):
     """Write run-level metadata to the Nexus file."""
-    bluesky_group = nxentry["instrument/bluesky"]
-    md_group = NXnote(date=None)
-    bluesky_group["metadata"] = md_group
+    bluesky_group = entry["instrument/bluesky"]
+    md_group = nxnote(bluesky_group, "metadata")
     flattened = {
         f"{doc_name}.{key}": value
         for doc_name, doc in metadata.items()
@@ -134,28 +138,46 @@ async def write_metadata(metadata: dict[str], nxentry: NXentry):
     }
     for key, value in flattened.items():
         value = to_hdf_type(value)
-        md_group[key] = NXfield(value)
+        nxfield(md_group, key, value)
     # Create additional convenient links
     if "start.sample_name" in md_group.keys():
-        nxentry["sample_name"] = NXlinkfield(md_group["start.sample_name"])
+        nxlink(parent=entry, name="sample_name", target=md_group["start.sample_name"])
     if "start.scan_name" in md_group.keys():
-        nxentry["scan_name"] = NXlinkfield(md_group["start.scan_name"])
+        nxlink(parent=entry, name="scan_name", target=md_group["start.scan_name"])
     if "start.plan_name" in md_group.keys():
-        nxentry["plan_name"] = NXlinkfield(md_group["start.plan_name"])
-        bluesky_group["plan_name"] = NXlinkfield(md_group["start.plan_name"])
+        nxlink(parent=entry, name="plan_name", target=md_group["start.plan_name"])
+        nxlink(parent=bluesky_group, name="plan_name", target=md_group["start.plan_name"])
     if "start.uid" in md_group.keys():
-        bluesky_group["uid"] = NXlinkfield(md_group["start.uid"])
-        nxentry["entry_identifier"] = NXlinkfield(md_group["start.uid"])
+        nxlink(parent=entry, name="entry_identifier", target=md_group["start.uid"])
+        nxlink(parent=bluesky_group, name="uid", target=md_group["start.uid"])
     for phase in ["start", "stop"]:
         if f"{phase}.time" in flattened.keys():
             timestamp = dt.datetime.fromtimestamp(flattened[f"{phase}.time"])
-            nxentry[f"{phase}_time"] = NXfield(timestamp.astimezone().isoformat())
+            nxfield(parent=entry, name=f"{phase}_time", value=timestamp.astimezone().isoformat())
     if "start.time" in flattened.keys() and "stop.time" in flattened.keys():
-        nxentry["duration"] = NXfield(flattened["stop.time"] - flattened["start.time"])
+        nxfield(parent=entry, name="duration", value=flattened["stop.time"] - flattened["start.time"])
+
+
+def chunk_size(chunks: Sequence[Sequence[int]]) -> tuple[int]:
+    """Determine the proper chunk size for a given chunk layout."""
+    chunks = tuple(min(arr) for arr in  chunks)
+    chunks = tuple((chunks[0], *chunks[1:]))
+    return chunks
+
+
+def slices(chunk_size: Sequence[int], shape: Sequence[int]) -> Generator[slice, None, None]:
+    ranges = [range(0, stop, step) for stop, step in zip(shape, chunk_size)]
+    segments = product(*ranges)
+    for segment in segments:
+        axes = tuple(
+            slice(start, start+size, 1)
+            for start, size in zip(segment, chunk_size)
+        )
+        yield axes
 
 
 async def write_stream(
-    name: str, node, nxentry: NXentry, metadata: Mapping[str, dict] = {}
+    name: str, node, entry: h5py.Group, metadata: Mapping[str, dict] = {}
 ):
     """Write a stream to the HDF file as a nexus-compatiable entry.
 
@@ -171,7 +193,7 @@ async def write_stream(
       The name for the new HDF5 NXdata group.
     node
       The tiled container for this stream.
-    parent
+    entry
       The HDF5 group/file to add this stream's group to.
     metadata
       Descriptions of the individual datasets to create and hint.
@@ -182,8 +204,7 @@ async def write_stream(
       The HDF5 group used to hold this stream's data.
 
     """
-    stream_group = NXnote(date=None)
-    nxentry[f"instrument/bluesky/streams/{name}"] = stream_group
+    stream_group = nxnote(entry['instrument/bluesky/streams'], name) 
     # Make sure we have access to these data
     stream = await asdict(node)
     try:
@@ -192,23 +213,35 @@ async def write_stream(
         # We don't have an internal dataset for some reason
         internal = None
     for col_name, desc in metadata["data_keys"].items():
-        nxdata = NXdata()
-        stream_group[col_name] = nxdata
+        data_group = nxdata(stream_group, col_name)
         if "external" in desc:
-            # Load and save external dataset from disk
-            data = await stream[col_name].read()
-            nxdata["value"] = NXfield(data)
+            sources = stream[col_name].data_sources
+            if len(sources) == 1 and "dataset" in sources[0].parameters:
+                # Include a symlink to the original HDF5 file
+                source = sources[0]
+                dataset = source.parameters['dataset']
+                fpath = Path(path_from_uri(source.assets[0].data_uri))
+                nxexternallink(parent=data_group, name="value", target=dataset, filepath=fpath)
+            else:
+                # Copy the array itself into the new file
+                #   This might be really slow…
+                warnings.warn(
+                    f"Could not link external dataset {col_name} in NeXus file. "
+                    "Copying entire array"
+                )
+                arr = await stream[col_name].read()
+                nxfield(data_group, "value", arr)
         else:
             # Save internal dataset
             try:
-                nxdata["value"] = NXfield(internal[col_name].values)
+                nxfield(data_group, "value", internal[col_name].values)
             except KeyError:
                 raise SerializationError(
                     f"Could not find internal dataset '{col_name}'"
                 )
             if "units" in desc.keys():
-                nxdata["value"].attrs["units"] = desc["units"]
-            nxdata.attrs["signal"] = "value"
+                data_group["value"].attrs["units"] = desc["units"]
+            data_group.attrs["signal"] = "value"
             try:
                 times = internal[f"ts_{col_name}"].values
             except KeyError:
@@ -216,25 +249,29 @@ async def write_stream(
                     f"Could not find timestamps for internal dataset '{col_name}'"
                 )
             else:
-                nxdata["EPOCH"] = NXfield(times)
-                nxdata["time"] = times - np.min(times)
-                nxdata["time"].attrs["units"] = "s"
-                nxdata.attrs["axes"] = "time"
+                nxfield(data_group, "EPOCH", times)
+                # nxdata["EPOCH"] = NXfield(times)
+                data_group["time"] = times - np.min(times)
+                # nxdata["time"] = times - np.min(times)
+                data_group["time"].attrs["units"] = "s"
+                data_group.attrs["axes"] = "time"
     # Add links to the main NXdata group
     if name == "baseline":
         # We don't want to see baseline fields in the data NXdata group
         stream_hints = {}
     else:
         stream_hints = metadata.get("hints", {})
-    root_nxdata = nxentry["data"]
+    root_nxdata = entry["data"]
     for device, hints in stream_hints.items():
         for field in hints.get("fields", []):
             # Make sure the field name is not already used in another stream
             link_name = field if field not in root_nxdata.keys() else f"field_{name}"
             # Write the link
+            link_target = '/'.join([stream_group.name, field, 'value'])
             try:
-                root_nxdata[link_name] = NXlinkfield(stream_group[field]["value"])
-            except NeXusError:
+                nxlink(root_nxdata, link_name, link_target , soft=True)
+                # root_nxdata[link_name] = NXlinkfield(stream_group[field]["value"])
+            except RuntimeError:
                 raise SerializationError(
                     f"Could not link hinted '{name}' field: '{field}'"
                 )
@@ -251,11 +288,8 @@ async def serialize_nexus(node, metadata, filter_for_access):
     """
     buff = io.BytesIO()
     root_node = node
-    # MSG = "Metadata contains types or structure that does not fit into HDF5."
 
-    with NexusIO(buff, mode="w") as nxfile:
+    with h5py.File(buff, mode="w") as nxfile:
         # Write data entry to the nexus file
         tree = await write_run(nxfile=nxfile, node=node, metadata=metadata)
-        nxfile.writefile(tree)
-        nxfile.close()
     return buff.getbuffer()
