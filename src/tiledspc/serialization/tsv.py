@@ -1,6 +1,7 @@
 import datetime as dt
 import io
 import logging
+import re
 from collections.abc import Mapping
 from typing import IO, Any
 
@@ -33,15 +34,18 @@ def headers(
         yield f"# Column.{num+1}: {key} {info.get('units', '')}"
     # X-ray edge information
     if strict and "edge" not in start_doc:
-        raise SerializationError("Metadata *edge* is required with strict XDI formatting.")
-    match = re.match(r"([A-Z][a-z]?)[-_]([K-Z]\d*)", start_doc['edge'])
+        raise SerializationError(
+            "Metadata *edge* is required with strict XDI formatting."
+        )
+    edge_str = start_doc.get("edge", "") or ""  # Empty string in case it's `None`
+    match = re.match(r"([A-Z][a-z]?)[-_]([K-Z]\d*)", edge_str)
     if match:
-        edge, elem = match.groups()
+        elem, edge = match.groups()
         yield f"# Element.symbol: {elem}"
         yield f"# Element.edge: {edge}"
     elif strict:
         raise SerializationError(
-            f"Metadata *edge* '{start_doc['edge']}' not in expected format."
+            f"Metadata *edge* '{start_doc.get('edge')}' not in expected format."
         )
     # Instrument metadata
     d_spacing = metadata.get("start", {}).get("d_spacing")
