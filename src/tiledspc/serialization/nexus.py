@@ -269,7 +269,7 @@ async def write_stream(
     return stream_group
 
 
-async def serialize_nexus(node, metadata, filter_for_access):
+async def serialize_nexus(mimetype, node, metadata, filter_for_access):
     """Encode everything below this node as HDF5.
 
     Assumes that *node* is a BlueskyRun.

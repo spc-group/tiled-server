@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 import pytest_asyncio
 
-from tiledspc.serialization.tsv import headers, serialize_tsv, serialize_xdi
+from tiledspc.serialization.tsv import headers, serialize_tsv
 
 # <BlueskyRun({'primary'})>
 
@@ -91,7 +91,8 @@ def metadata():
 async def xdi_text(xafs_run, metadata):
     metadata["start"]["d_spacing"] = 3.13
     # Generate the headers
-    xdi_text = await serialize_xdi(
+    xdi_text = await serialize_tsv(
+        mimetype="text/x-xdi",
         node=xafs_run,
         metadata=metadata,
         filter_for_access=None,
@@ -103,6 +104,7 @@ async def xdi_text(xafs_run, metadata):
 async def tsv_text(xafs_run, metadata):
     # Generate the headers
     tsv_text = await serialize_tsv(
+        mimetype="text/tab-separated-values",
         node=xafs_run,
         metadata=metadata,
         filter_for_access=None,

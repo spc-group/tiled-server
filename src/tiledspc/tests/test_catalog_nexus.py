@@ -248,7 +248,9 @@ class NexusIO(NXFile):
 async def nxfile(xafs_run):
     # Generate the headers
     buff = bytes(
-        await serialize_nexus(xafs_run, metadata=metadata, filter_for_access=None)
+        await serialize_nexus(
+            "application/x-nexus", xafs_run, metadata=metadata, filter_for_access=None
+        )
     )
     buff = io.BytesIO(buff)
     with NexusIO(buff, mode="r") as fd:

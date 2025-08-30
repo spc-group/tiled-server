@@ -9,7 +9,7 @@ from pandas import DataFrame
 from tiled.catalog.adapter import CatalogNodeAdapter, CatalogTableAdapter
 from tiled.utils import SerializationError
 
-__all__ = ["serialize_xdi"]
+__all__ = ["serialize_tsv"]
 
 
 log = logging.getLogger(__name__)
@@ -145,41 +145,24 @@ def build_xdi(
     return xdi_text
 
 
-async def serialize_tsv(node, metadata, filter_for_access):
+async def serialize_tsv(mimetype: str, node, metadata, filter_for_access):
     """Write a bluesky run as tab-separated values.
 
     Assumes that *node* is a BlueskyRun.
 
     Includes some headers, though nothing is required."
 
-    """
-    stream_node, data_node = await load_datasets(node)
-    # Get extra data
-    data = await data_node.read()
-    xdi_text = build_xdi(
-        metadata=metadata,
-        stream_metadata=stream_node.metadata(),
-        data=data,
-        strict=False,
-    )
-    return xdi_text.encode("utf-8")
-
-
-async def serialize_xdi(node, metadata, filter_for_access):
-    """Write a bluesky run in XDI format.
-
-    Assumes that *node* is a BlueskyRun.
-
-    Follows the XDI spectroscopy definition."
+    Matches the XDI specification if *mimetype* is "text/x-xdi".
 
     """
     stream_node, data_node = await load_datasets(node)
     # Get extra data
     data = await data_node.read()
+    strict = True if mimetype == "text/x-xdi" else False
     xdi_text = build_xdi(
         metadata=metadata,
         stream_metadata=stream_node.metadata(),
         data=data,
-        strict=True,
+        strict=strict,
     )
     return xdi_text.encode("utf-8")

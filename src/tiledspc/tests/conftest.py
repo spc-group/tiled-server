@@ -221,7 +221,7 @@ def xafs_run(tree):
             "data_keys": data_keys,
             "configuration": xafs_config,
         }
-        primary = streams.create_composite("primary", metadata=primary_metadata)
+        primary = streams.create_container("primary", metadata=primary_metadata)
         internal = primary.write_dataframe(xafs_events, key="internal")
         # Fluorescence data
         primary.write_array(
@@ -229,7 +229,7 @@ def xafs_run(tree):
         )
         primary.write_array(np.ones(shape=(100,)), key="ge_8element-element0-all_event")
         # internal.write_dataframe(xafs_events, key="events")
-        baseline = streams.create_composite(
+        baseline = streams.create_container(
             "baseline",
             metadata={
                 "hints": {"aps_current": {"fields": ["aps_current"]}},

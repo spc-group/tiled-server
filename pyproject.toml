@@ -17,9 +17,9 @@ classifiers = [
 ]
 keywords = ["synchrotron", "xray", "tiled"]
 dependencies = [
-    "tiled[all]==0.1.0-b32",
+    "tiled[all]==0.1.0-b36",
     "area-detector-handlers",
-    "bluesky-tiled-plugins==2.0.0b64",
+    "bluesky-tiled-plugins==2.0.0b68",
     "event-model",
     "suitcase",
     "suitcase-mongo",
@@ -32,7 +32,7 @@ dependencies = [
     "pandas",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = ["black", "isort", "pytest", "pytest-asyncio", "build", "twine", "flake8", "nexusformat",]
 
 [project.urls]
