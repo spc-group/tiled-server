@@ -4021,7 +4021,7 @@ client = [
 
 [[package]]
 name = "tiledspc"
-version = "2024.7.0"
+version = "2024.8.0"
 source = { editable = "." }
 dependencies = [
     { name = "area-detector-handlers" },

@@ -70,7 +70,10 @@ def nxexternallink(parent: h5py.Group, name: str, target: str, filepath: Path):
     """Create a link between a dataset in an external file."""
     other_file = str(filepath.resolve().expanduser())
     link = h5py.ExternalLink(other_file, target)
-    parent[name] = link
+    try:
+        parent[name] = link
+    except TypeError:
+        breakpoint()
 
 
 async def write_run(
@@ -133,7 +136,8 @@ def write_metadata(metadata: dict[str], entry: h5py.Group):
         for doc_name, doc in metadata.items()
         for key, value in doc.items()
     }
-    for key, value in flattened.items():
+    items = [(key, value) for key, value in flattened.items() if value is not None]
+    for key, value in items:
         value = to_hdf_type(value)
         nxfield(md_group, key, value)
     # Create additional convenient links
@@ -211,7 +215,7 @@ async def write_stream(
                 dataset = source.parameters["dataset"]
                 fpath = Path(path_from_uri(source.assets[0].data_uri))
                 nxexternallink(
-                    parent=data_group, name="value", target=dataset, filepath=fpath
+                    parent=data_group, name="value", target="/".join(dataset), filepath=fpath
                 )
             else:
                 # Copy the array itself into the new file

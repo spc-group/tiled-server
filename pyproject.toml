@@ -1,6 +1,6 @@
 [project]
 name = "tiledspc"
-version = "2024.7.0"
+version = "2024.8.0"
 authors = [
   { name="Mark Wolfman", email="wolfman@anl.gov" },
 ]
